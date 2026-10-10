@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# MapLibre worker, copied from node_modules before dev and build
+/public/maplibre/
+
 # production
 /build
 

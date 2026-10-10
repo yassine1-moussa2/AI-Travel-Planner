@@ -16,6 +16,8 @@ interface Props {
   dayLabels: string[];
   index: Record<string, Place>;
   freePlaces: Place[];
+  shownOnMap: boolean;
+  onShowOnMap: (dayIndex: number) => void;
   onTripChange: (trip: Trip) => void;
 }
 
@@ -78,10 +80,15 @@ export default function DayPlan(props: Props) {
   return (
     <article className="day">
       <header className="day-header">
-        <h3>
-          {props.dayLabels[dayIndex]}
-          <span className="day-date">{props.date}</span>
-        </h3>
+        <div className="day-header-top">
+          <h3>
+            {props.dayLabels[dayIndex]}
+            <span className="day-date">{props.date}</span>
+          </h3>
+          <button type="button" className="map-button" aria-pressed={props.shownOnMap} onClick={() => props.onShowOnMap(dayIndex)}>
+            Show on map
+          </button>
+        </div>
         <p className="day-title">{day.title}</p>
       </header>
 

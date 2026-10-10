@@ -783,6 +783,137 @@ legend {
   opacity: 0.75;
 }
 
+/* ---------- Day map ---------- */
+
+/* Below 1100px the map sits above the days; the list stays first for screen readers. */
+.leg-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.leg-map {
+  order: -1;
+  margin-top: 1.25rem;
+}
+
+/* Same postcard edge as a day sheet. */
+.leg-map-box {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  border: 1px solid #f1d3ba;
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+/* Sized, not positioned: MapLibre's own CSS sets position: relative on this element. */
+.leg-map-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.leg-map-failed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1.5rem;
+  background: var(--paper);
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.leg-map-caption {
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* Wide screens: days on the left, the map beside the day being read. */
+@media (min-width: 1100px) {
+  .leg-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .leg-map {
+    order: 0;
+    position: sticky;
+    top: 1.5rem;
+  }
+
+  .leg-map-box {
+    height: min(calc(100vh - 8rem), 560px);
+  }
+}
+
+.map-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(58, 29, 44, 0.35);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-stop {
+  background: var(--bougainvillea);
+  color: #fff;
+}
+
+/* Ink on marigold: white would be too faint on the yellow. */
+.map-stay {
+  background: var(--marigold);
+  color: var(--ink);
+}
+
+.map-marker:focus-visible {
+  outline: 3px solid var(--sea);
+  outline-offset: 2px;
+}
+
+.leg-map-box .maplibregl-popup-content {
+  padding: 0.45rem 1.6rem 0.45rem 0.75rem;
+  border-radius: 10px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.day-header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.map-button {
+  padding: 0.25rem 0.8rem;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.map-button[aria-pressed="true"] {
+  border-color: var(--sea);
+  background: var(--sea);
+  color: #fff;
+}
+
 /* ---------- Footer ---------- */
 
 .footer {

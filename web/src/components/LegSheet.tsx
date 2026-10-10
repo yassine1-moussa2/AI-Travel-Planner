@@ -1,11 +1,21 @@
 "use client";
 // One destination of the trip: where you sleep, each day, and local tips.
+import dynamic from "next/dynamic";
+import { useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
-import { formatDayDate, placesById } from "@/lib/recalculate";
+import { dayMapData } from "@/lib/mapData";
+import { formatDayDate, placesById, scheduleDay } from "@/lib/recalculate";
 import { legKey } from "@/lib/storage";
 import { setLegNumber, setStay, unusedPlaces } from "@/lib/tripEdits";
 import type { Trip } from "@/lib/types";
 import DayPlan from "./DayPlan";
+
+// MapLibre needs the browser, so the map is never rendered on the server.
+// The empty box keeps the layout steady while the map's code downloads.
+const LegMap = dynamic(() => import("./LegMap"), {
+  ssr: false,
+  loading: () => <div className="leg-map-box" />,
+});
 
 interface Props {
   trip: Trip;
@@ -19,6 +29,7 @@ export default function LegSheet(props: Props) {
   const { trip, legIndex, startOffset, onTripChange, onReplan } = props;
   const leg = trip.legs[legIndex];
   const plan = leg.plan;
+  const [mapDayIndex, setMapDayIndex] = useState(0);
 
   let title = leg.city;
   if (plan !== null) {
@@ -90,6 +101,12 @@ export default function LegSheet(props: Props) {
     dayLabels.push("Day " + (startOffset + dayIndex + 1));
   }
 
+  // A re-plan can leave fewer days than before; fall back to the first one then.
+  let shownDayIndex = mapDayIndex;
+  if (shownDayIndex >= plan.days.length) {
+    shownDayIndex = 0;
+  }
+
   const days: ReactNode[] = [];
   for (let dayIndex = 0; dayIndex < plan.days.length; dayIndex++) {
     days.push(
@@ -102,8 +119,27 @@ export default function LegSheet(props: Props) {
         dayLabels={dayLabels}
         index={index}
         freePlaces={freePlaces}
+        shownOnMap={dayIndex === shownDayIndex}
+        onShowOnMap={setMapDayIndex}
         onTripChange={onTripChange}
       />,
+    );
+  }
+
+  // The map follows the same schedule as the list, so its numbers and times always agree.
+  let map: ReactNode = null;
+  if (plan.days.length > 0) {
+    const shownSchedule = scheduleDay(plan.days[shownDayIndex], index, trip.preferences.pace);
+    const stayPlace = index[plan.stayPlaceId] || null;
+    map = (
+      <div className="leg-map">
+        <LegMap
+          data={dayMapData(shownSchedule, stayPlace)}
+          center={plan.center}
+          label={"Map of " + dayLabels[shownDayIndex] + " in " + title}
+        />
+        <p className="leg-map-caption">Lines join stops in order. They are not walking routes.</p>
+      </div>
     );
   }
 
@@ -143,7 +179,10 @@ export default function LegSheet(props: Props) {
         <p className="estimate-hint">These prices are our estimates. If you have a real quote, type it in and everything updates.</p>
       </div>
 
-      {days}
+      <div className="leg-body">
+        <div className="leg-days">{days}</div>
+        {map}
+      </div>
 
       {tips.length > 0 && (
         <aside className="tips">

@@ -30,6 +30,8 @@ Open http://localhost:3000.
   food wishes, must-see places, interests and pace.
 - **Edit everything.** Reorder, move to another day, swap, remove or add places; change any
   duration or price, the hotel, nightly rate or ticket prices. Changing a city re-plans only that city.
+- **Day map.** Each destination shows one day on a map: numbered stops in visiting order, a dotted
+  line joining them, and the hotel. Every edit updates it instantly; "Show on map" picks the day.
 - **Honest numbers.** Every price is an estimate and every one is editable. The page says so.
 
 ## How it works
@@ -55,7 +57,7 @@ what makes instant, correct recalculation possible.
 | Command | Does |
 |---|---|
 | `npm run dev` | Local site at http://localhost:3000 |
-| `npm test` | 14 tests: scheduling, budget, edits, grounding, data profiling |
+| `npm test` | 23 tests: scheduling, budget, edits, grounding, data profiling, map data, Gemini retries |
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | ESLint |
 | `npm run build` | Production build |
@@ -101,10 +103,11 @@ src/
     ├── tripEdits.ts     every change a traveller can make
     ├── grounding.ts     drops places the AI invented
     ├── geo.ts           distances, walking vs transit, transfers
+    ├── mapData.ts       what the day map draws (pure, from the same schedule as the list)
     ├── profile.ts       data-quality profiling
     └── server/          Geoapify, Gemini, prompt, planning, cache, debug
 scripts/explore-places.ts
-tests/planner.test.ts
+tests/  planner · mapData · gemini
 ```
 
 ## Known limits
@@ -114,3 +117,9 @@ tests/planner.test.ts
 - Transfers are rough distance-based estimates, not live train or flight fares.
 - The place cache lives in server memory and resets when `npm run dev` restarts.
 - Trips are saved in your browser only; there are no accounts yet.
+
+## Credits
+
+- Map tiles and style: [OpenFreeMap](https://openfreemap.org) (Liberty style), no key needed.
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+- Map rendering: [MapLibre GL JS](https://maplibre.org).

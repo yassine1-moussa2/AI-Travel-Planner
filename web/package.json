@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "tsx scripts/copy-map-worker.ts",
     "dev": "next dev",
+    "prebuild": "tsx scripts/copy-map-worker.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,12 +14,14 @@
     "explore": "tsx scripts/explore-places.ts"
   },
   "dependencies": {
+    "maplibre-gl": "6.11.2",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@types/geojson": "7946.0.16",
     "@types/node": "20.19.43",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

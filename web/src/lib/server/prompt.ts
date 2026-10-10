@@ -1,4 +1,5 @@
 // Builds the instructions sent to the AI for one destination.
+import { EXCURSION_KM, EXCURSION_MIN_MINUTES } from "../discovery";
 import { distanceKm } from "../geo";
 import { dayStartMinutes, formatClock } from "../recalculate";
 import type { LegRequest, Place, Point, TripStyle } from "../types";
@@ -105,6 +106,7 @@ export function buildLegPrompt(input: LegRequest, center: Point, places: Place[]
   lines.push("- Build each day around one area. A far icon anchors its day together with stops near it; never zigzag across the city. Use the areas and distances.");
   lines.push("- Order each day so consecutive stops are close together.");
   lines.push(STYLE_RULES[prefs.tripStyle]);
+  lines.push("- A place more than " + EXCURSION_KM + " km from the centre is an excursion: give it half a day (at least " + EXCURSION_MIN_MINUTES / 60 + " hours there), at most one excursion per day, and keep the rest of that day near it or near the centre.");
   lines.push("- Never use the same place twice across the whole stay.");
   lines.push("- costPerPerson: realistic entry ticket or meal price for ONE person; 0 for free places like parks, viewpoints and squares.");
   lines.push("- durationMinutes: realistic time spent there.");

@@ -46,3 +46,9 @@ test("each style gives its own rule about hidden and local finds", () => {
   // Notes for hidden finds may only use what the traveller told us.
   assert.ok(rules.balanced.includes("Never state facts you were not given"));
 });
+
+test("the prompt explains excursions", () => {
+  const prompt = buildLegPrompt(request(3), lisbon, [bridgeView, tasca], [], {});
+  assert.ok(prompt.includes("more than 15 km from the centre is an excursion"));
+  assert.ok(prompt.includes("at most one excursion per day"));
+});

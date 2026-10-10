@@ -175,9 +175,13 @@ export async function findDestination(text: string): Promise<DestinationLookup> 
 }
 
 // Raw features, used by the planner and by the data-exploration script.
-export async function fetchRawPlaces(center: Point, categories: string, limit: number, radiusMeters: number): Promise<RawPlaceProperties[]> {
+export async function fetchRawPlaces(center: Point, categories: string, limit: number, radiusMeters: number, name: string = ""): Promise<RawPlaceProperties[]> {
   const url = new URL(PLACES_URL);
   url.searchParams.set("categories", categories);
+  // Optional: only places whose name matches, like "outlet" among shopping malls.
+  if (name !== "") {
+    url.searchParams.set("name", name);
+  }
   // Nameless places are useless to a traveller and were dropped anyway; asking for named ones
   // only keeps the limit for real results (87% of New York viewpoints have no name).
   url.searchParams.set("conditions", "named");
@@ -221,8 +225,8 @@ function toFoundPlace(raw: RawPlaceProperties, category: PlaceCategory): FoundPl
 
 // One category group, cached. A failure here is logged and returns nothing,
 // so one bad category never ruins the whole city.
-export async function fetchPlaces(center: Point, categories: string, category: PlaceCategory, limit: number, radiusMeters: number): Promise<FoundPlace[]> {
-  const cacheKey = "places|named|" + center.lat.toFixed(3) + "," + center.lon.toFixed(3) + "|" + categories + "|" + limit + "|" + radiusMeters;
+export async function fetchPlaces(center: Point, categories: string, category: PlaceCategory, limit: number, radiusMeters: number, name: string = ""): Promise<FoundPlace[]> {
+  const cacheKey = "places|named|" + center.lat.toFixed(3) + "," + center.lon.toFixed(3) + "|" + categories + "|" + limit + "|" + radiusMeters + "|" + name;
   const cached = readCache<FoundPlace[]>(cacheKey);
   if (cached !== null) {
     return cached;
@@ -231,7 +235,7 @@ export async function fetchPlaces(center: Point, categories: string, category: P
   const done = startTimer("places");
   let raws: RawPlaceProperties[] = [];
   try {
-    raws = await fetchRawPlaces(center, categories, limit, radiusMeters);
+    raws = await fetchRawPlaces(center, categories, limit, radiusMeters, name);
   } catch (error) {
     // Key problems and rate limits affect every category, so stop and report them.
     // Anything else (like one unknown category name) only skips this group.

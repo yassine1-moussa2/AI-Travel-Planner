@@ -38,6 +38,7 @@ export const INTEREST_WORDS: Record<Interest, string> = {
   beaches: "Beaches",
   nightlife: "A drink after dark",
   shopping: "Markets and shops",
+  outlets: "Outlets and deals",
 };
 
 export const STYLE_WORDS: Record<StayStyle, string> = {

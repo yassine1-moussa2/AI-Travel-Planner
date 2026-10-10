@@ -1,6 +1,7 @@
 // Plans one destination end to end:
 // find the city -> collect real places -> ask the AI to arrange them -> drop anything invented.
 import { selectCandidates } from "../candidates";
+import { EXCURSION_KM, applyExcursionRules } from "../discovery";
 import { ICON_COUNT, classifyPlaces } from "../fame";
 import { EUR_TO } from "../geo";
 import { groundDays } from "../grounding";
@@ -17,12 +18,18 @@ export interface CategoryGroup {
   categories: string;
   category: PlaceCategory;
   limit: number;
+  // Defaults to CITY_RADIUS_M. Some things worth the trip are further out.
+  radius?: number;
+  // Keep only places whose name contains this (case-insensitive), like "outlet".
+  nameContains?: string;
 }
 
 export const CITY_RADIUS_M = 5000;
 // Must-sees can be further out than everyday stops: the Brooklyn Bridge, Belém Tower.
 export const ICON_RADIUS_M = 20000;
 export const STAY_RADIUS_M = 2500;
+// Outlet villages sit outside cities: Castel Romano is 20 km from Rome, Freeport 18 km from Lisbon.
+export const OUTLET_RADIUS_M = 60000;
 const MAX_MUST_SEE = 5;
 
 // Always fetched: things to see, places to eat, places for coffee.
@@ -32,13 +39,18 @@ export const ALWAYS: CategoryGroup[] = [
   { categories: "catering.cafe", category: "cafe", limit: 8 },
 ];
 
-export const BY_INTEREST: Record<Interest, CategoryGroup> = {
-  history: { categories: "heritage,tourism.sights.castle", category: "sight", limit: 8 },
-  museums: { categories: "entertainment.museum,entertainment.culture", category: "museum", limit: 10 },
-  nature: { categories: "leisure.park", category: "nature", limit: 8 },
-  beaches: { categories: "beach", category: "beach", limit: 6 },
-  nightlife: { categories: "catering.bar,catering.pub", category: "nightlife", limit: 8 },
-  shopping: { categories: "commercial.shopping_mall,commercial.marketplace", category: "shopping", limit: 6 },
+export const BY_INTEREST: Record<Interest, CategoryGroup[]> = {
+  history: [{ categories: "heritage,tourism.sights.castle", category: "sight", limit: 8 }],
+  museums: [{ categories: "entertainment.museum,entertainment.culture", category: "museum", limit: 10 }],
+  nature: [{ categories: "leisure.park", category: "nature", limit: 8 }],
+  beaches: [{ categories: "beach", category: "beach", limit: 6 }],
+  nightlife: [{ categories: "catering.bar,catering.pub", category: "nightlife", limit: 8 }],
+  shopping: [{ categories: "commercial.shopping_mall,commercial.marketplace", category: "shopping", limit: 6 }],
+  // Outlet malls far out (found by name: Geoapify has no outlet category), plus city markets.
+  outlets: [
+    { categories: "commercial.shopping_mall", category: "shopping", limit: 10, radius: OUTLET_RADIUS_M, nameContains: "outlet" },
+    { categories: "commercial.marketplace", category: "shopping", limit: 6 },
+  ],
 };
 
 // Off the beaten path, within the city radius. Every category was checked against Geoapify's
@@ -80,20 +92,45 @@ function groupsFor(interests: Interest[]): CategoryGroup[] {
     chosen = ["history", "museums", "nature"];
   }
   for (const interest of chosen) {
-    groups.push(BY_INTEREST[interest]);
+    for (const group of BY_INTEREST[interest]) {
+      groups.push(group);
+    }
   }
   return groups;
+}
+
+// One group, with its own radius and name filter. The name is checked again here because
+// Geoapify's name search also matches near spellings.
+export async function fetchGroup(center: Point, group: CategoryGroup): Promise<FoundPlace[]> {
+  const radius = group.radius || CITY_RADIUS_M;
+  const nameContains = group.nameContains || "";
+  const batch = await fetchPlaces(center, group.categories, group.category, group.limit, radius, nameContains);
+  if (nameContains === "") {
+    return batch;
+  }
+  const kept: FoundPlace[] = [];
+  for (const place of batch) {
+    if (place.name.toLowerCase().includes(nameContains.toLowerCase())) {
+      kept.push(place);
+    }
+  }
+  return kept;
 }
 
 // Fetch each group one after another and collect the results into one list.
 // Deliberately not parallel: the free Geoapify plan rate-limits bursts, and a rejected
 // burst would silently lose whole categories. Cached cities skip this entirely.
-async function collectPlaces(center: Point, interests: Interest[]): Promise<FoundPlace[]> {
+// Places found by name (like outlets) were asked for specifically, so their names are
+// added to `wanted` and they always reach the AI.
+async function collectPlaces(center: Point, interests: Interest[], wanted: Record<string, boolean>): Promise<FoundPlace[]> {
   const all: FoundPlace[] = [];
   for (const group of groupsFor(interests)) {
-    const batch = await fetchPlaces(center, group.categories, group.category, group.limit, CITY_RADIUS_M);
+    const batch = await fetchGroup(center, group);
     for (const place of batch) {
       all.push(place);
+      if (group.nameContains !== undefined) {
+        wanted[place.name.toLowerCase()] = true;
+      }
     }
   }
   return all;
@@ -222,14 +259,15 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
 
   const mustSee = await collectMustSee(input.preferences.mustSee, center);
   const famous = await collectFamous(center);
-  const general = await collectPlaces(center, input.preferences.interests);
+  // Names that must reach the AI: what the traveller typed, and outlets they asked for.
+  const asked: Record<string, boolean> = {};
+  const general = await collectPlaces(center, input.preferences.interests, asked);
   const discovery = await collectDiscovery(center);
   const stayFound = await fetchPlaces(stayCenter, STAY_CATEGORIES[input.preferences.stayStyle], "stay", 12, STAY_RADIUS_M);
 
   // Must-see places go first so they survive de-duplication, then the famous ones,
   // so a famous place keeps its Wikidata identity when Geoapify lists it too.
   const combined: FoundPlace[] = [];
-  const asked: Record<string, boolean> = {};
   for (const item of mustSee) {
     combined.push(item);
     asked[item.name.toLowerCase()] = true;
@@ -281,6 +319,12 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   }
   const grounded = groundDays(ai.days, validIds, input.nights);
   logStep("grounding", grounded.droppedStops + " invented or repeated stops dropped");
+  const index: Record<string, Place> = {};
+  for (const place of places) {
+    index[place.id] = place;
+  }
+  const excursions = applyExcursionRules(grounded.days, index, center);
+  logStep("excursions", excursions.removedStops + " extra excursions taken out (max one per day, " + EXCURSION_KM + " km+)");
 
   return {
     cityName: center.name,
@@ -290,7 +334,7 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
     stayPlaceId: pickStay(ai.stayPlaceId, stays),
     nightlyPricePerRoom: pickNightly(ai.nightlyPricePerRoom, input),
     localTransportPerPersonPerDay: Math.max(0, Math.round(ai.localTransportPerPersonPerDay)),
-    days: grounded.days,
+    days: excursions.days,
     tips: ai.tips.slice(0, 4),
   };
 }

@@ -3,11 +3,12 @@
 //
 // Usage:  npm run explore -- "Lisbon"
 import { ICON_COUNT, classifyPlaces } from "../src/lib/fame";
+import { distanceKm } from "../src/lib/geo";
 import { profileGroup } from "../src/lib/profile";
 import type { GroupProfile } from "../src/lib/profile";
-import { fetchPlaces, fetchRawPlaces, findDestination } from "../src/lib/server/geoapify";
+import { fetchRawPlaces, findDestination } from "../src/lib/server/geoapify";
 import type { FoundPlace } from "../src/lib/server/geoapify";
-import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, DISCOVERY, STAY_CATEGORIES, STAY_RADIUS_M, collectDiscovery, collectFamous, measureFame, numberPlaces } from "../src/lib/server/planLeg";
+import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, DISCOVERY, STAY_CATEGORIES, STAY_RADIUS_M, collectDiscovery, collectFamous, fetchGroup, measureFame, numberPlaces } from "../src/lib/server/planLeg";
 import type { Place, Point } from "../src/lib/types";
 
 interface GroupToCheck {
@@ -15,6 +16,7 @@ interface GroupToCheck {
   categories: string;
   limit: number;
   radius: number;
+  name: string;
   isFood: boolean;
 }
 
@@ -22,24 +24,26 @@ interface GroupToCheck {
 function allGroups(): GroupToCheck[] {
   const groups: GroupToCheck[] = [];
   for (const group of ALWAYS) {
-    groups.push({ label: group.category + " (always)", categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, isFood: group.category === "food" });
+    groups.push({ label: group.category + " (always)", categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, name: "", isFood: group.category === "food" });
   }
   for (const interest of Object.keys(BY_INTEREST) as (keyof typeof BY_INTEREST)[]) {
-    const group = BY_INTEREST[interest];
-    groups.push({ label: "interest: " + interest, categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, isFood: false });
+    for (const group of BY_INTEREST[interest]) {
+      const label = "interest: " + interest + " (" + group.categories.split(",")[0] + ")";
+      groups.push({ label, categories: group.categories, limit: group.limit, radius: group.radius || CITY_RADIUS_M, name: group.nameContains || "", isFood: false });
+    }
   }
   for (const group of DISCOVERY) {
-    groups.push({ label: "discovery: " + group.categories.split(",")[0], categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, isFood: false });
+    groups.push({ label: "discovery: " + group.categories.split(",")[0], categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, name: "", isFood: false });
   }
   for (const style of Object.keys(STAY_CATEGORIES) as (keyof typeof STAY_CATEGORIES)[]) {
-    groups.push({ label: "stay: " + style, categories: STAY_CATEGORIES[style], limit: 12, radius: STAY_RADIUS_M, isFood: false });
+    groups.push({ label: "stay: " + style, categories: STAY_CATEGORIES[style], limit: 12, radius: STAY_RADIUS_M, name: "", isFood: false });
   }
   return groups;
 }
 
 async function profileOne(group: GroupToCheck, center: Point): Promise<GroupProfile> {
   try {
-    const rows = await fetchRawPlaces(center, group.categories, group.limit, group.radius);
+    const rows = await fetchRawPlaces(center, group.categories, group.limit, group.radius, group.name);
     return profileGroup(group.label, rows, center, group.isFood);
   } catch (error) {
     const empty = profileGroup(group.label, [], center, group.isFood);
@@ -87,10 +91,12 @@ async function classifiedCandidates(center: Point): Promise<Place[]> {
   const found: FoundPlace[] = await collectFamous(center);
   const groups = ALWAYS.slice();
   for (const interest of Object.keys(BY_INTEREST) as (keyof typeof BY_INTEREST)[]) {
-    groups.push(BY_INTEREST[interest]);
+    for (const group of BY_INTEREST[interest]) {
+      groups.push(group);
+    }
   }
   for (const group of groups) {
-    const batch = await fetchPlaces(center, group.categories, group.category, group.limit, CITY_RADIUS_M);
+    const batch = await fetchGroup(center, group);
     for (const item of batch) {
       found.push(item);
     }
@@ -150,6 +156,17 @@ function printFame(places: Place[]): void {
   console.log("  Local finds: " + local);
 }
 
+// Outlet malls within OUTLET_RADIUS_M, exactly as the "Outlets and deals" interest finds them.
+async function printOutlets(center: Point): Promise<void> {
+  const outletGroup = BY_INTEREST.outlets[0];
+  const outlets = await fetchGroup(center, outletGroup);
+  console.log("\nOutlets within " + Math.round((outletGroup.radius || CITY_RADIUS_M) / 1000) + " km: " + outlets.length);
+  for (const outlet of outlets) {
+    const km = distanceKm(center.lat, center.lon, outlet.lat, outlet.lon);
+    console.log("  " + km.toFixed(1).padStart(5) + " km  " + outlet.name);
+  }
+}
+
 async function main(): Promise<void> {
   try {
     process.loadEnvFile(".env.local");
@@ -180,6 +197,7 @@ async function main(): Promise<void> {
   }
   printProfiles(profiles);
   printFame(await classifiedCandidates(center));
+  await printOutlets(center);
 }
 
 main();

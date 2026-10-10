@@ -2,7 +2,7 @@
 // before the rest of the code is allowed to trust it.
 import { z } from "zod";
 
-const interestSchema = z.enum(["history", "museums", "nature", "beaches", "nightlife", "shopping"]);
+const interestSchema = z.enum(["history", "museums", "nature", "beaches", "nightlife", "shopping", "outlets"]);
 
 export const legRequestSchema = z.object({
   city: z.string().trim().min(2).max(80),
@@ -11,7 +11,7 @@ export const legRequestSchema = z.object({
   currency: z.enum(["EUR", "USD", "GBP", "MAD"]),
   dailyBudgetPerPerson: z.number().min(0).max(100000),
   preferences: z.object({
-    interests: z.array(interestSchema).max(6),
+    interests: z.array(interestSchema).max(7),
     stayStyle: z.enum(["budget", "comfort", "treat"]),
     stayArea: z.string().max(80),
     food: z.string().max(200),

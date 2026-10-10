@@ -1,7 +1,8 @@
 "use client";
 // One day of the trip, laid out as a timeline. Times are recalculated on every render.
 import type { ChangeEvent, ReactNode } from "react";
-import { isLongHop } from "@/lib/discovery";
+import { isExcursion, isLongHop } from "@/lib/discovery";
+import { distanceKm, hopBetween } from "@/lib/geo";
 import { scheduleDay } from "@/lib/recalculate";
 import { addStop } from "@/lib/tripEdits";
 import { describeHop } from "@/lib/words";
@@ -42,6 +43,8 @@ export default function DayPlan(props: Props) {
   const items: ReactNode[] = [];
   for (let stopIndex = 0; stopIndex < schedule.stops.length; stopIndex++) {
     const scheduled = schedule.stops[stopIndex];
+    // Excursions get their own notice: the trip there and back, measured from the centre.
+    const excursionStop = scheduled.place !== null && isExcursion(scheduled.place, plan.center);
     if (scheduled.hopBefore !== null) {
       items.push(
         <li key={scheduled.stop.uid + "-hop"} className={"hop hop-" + scheduled.hopBefore.mode}>
@@ -49,13 +52,21 @@ export default function DayPlan(props: Props) {
         </li>,
       );
       // A far stop is worth it, but the traveller should know before they go.
-      if (isLongHop(scheduled.hopBefore)) {
+      if (isLongHop(scheduled.hopBefore) && !excursionStop) {
         items.push(
           <li key={scheduled.stop.uid + "-long"} className="hop-notice">
             Long trip across town: about {scheduled.hopBefore.minutes} min each way.
           </li>,
         );
       }
+    }
+    if (excursionStop && scheduled.place !== null) {
+      const km = distanceKm(plan.center.lat, plan.center.lon, scheduled.place.lat, scheduled.place.lon);
+      items.push(
+        <li key={scheduled.stop.uid + "-trip"} className="hop-notice">
+          Worth the trip: about {hopBetween(km).minutes} min each way from the centre.
+        </li>,
+      );
     }
     items.push(
       <StopRow

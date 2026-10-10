@@ -4,12 +4,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MAX_CANDIDATES, RESERVED, selectCandidates } from "../src/lib/candidates";
-import { isLongHop, missingIcons, nearestDay } from "../src/lib/discovery";
+import { EXCURSION_MIN_MINUTES, applyExcursionRules, isExcursion, isLongHop, missingIcons, nearestDay } from "../src/lib/discovery";
 import { placesById } from "../src/lib/recalculate";
-import { ADVENTUROUS_ICON_COUNT, iconCountFor } from "../src/lib/server/planLeg";
+import { ADVENTUROUS_ICON_COUNT, BY_INTEREST, fetchGroup, iconCountFor } from "../src/lib/server/planLeg";
 import { readFamousPlaces } from "../src/lib/server/wikidata";
 import { ICON_COUNT } from "../src/lib/fame";
-import type { LegPlan, Place, PlaceCategory, PlaceTier } from "../src/lib/types";
+import type { FoundPlace } from "../src/lib/server/geoapify";
+import type { LegPlan, Place, PlaceCategory, PlaceTier, Stop } from "../src/lib/types";
 
 function place(id: string, category: PlaceCategory, tier: PlaceTier, fame: number, lat: number, lon: number): Place {
   return { id, name: "Place " + id, category, lat, lon, address: "", cuisine: "", wikidataId: "", fame, tier, wikiUrl: "" };
@@ -148,4 +149,69 @@ test("an adventurous trip gets only the top 3 icons", () => {
   assert.equal(iconCountFor("adventurous"), ADVENTUROUS_ICON_COUNT);
   assert.equal(iconCountFor("balanced"), ICON_COUNT);
   assert.equal(iconCountFor("classic"), ICON_COUNT);
+});
+
+function stopUids(stops: Stop[]): string[] {
+  const uids: string[] = [];
+  for (const stop of stops) {
+    uids.push(stop.uid);
+  }
+  return uids;
+}
+
+function placeNames(places: FoundPlace[]): string[] {
+  const names: string[] = [];
+  for (const item of places) {
+    names.push(item.name);
+  }
+  return names;
+}
+
+// Sintra is about 25 km from central Lisbon; Cascais about 26 km.
+const sintra = place("x1", "sight", "classic", 40, 38.7976, -9.3906);
+const cascais = place("x2", "beach", "classic", 30, 38.6979, -9.4215);
+
+test("a stop more than 15 km from the centre is an excursion", () => {
+  const center = lisbonPlan().center;
+  assert.equal(isExcursion(sintra, center), true);
+  assert.equal(isExcursion(belemTower, center), false);
+});
+
+test("an excursion gets half a day, and a second one on the same day is taken out", () => {
+  const plan = lisbonPlan();
+  plan.places.push(sintra, cascais);
+  const days = [
+    {
+      title: "Sintra and Cascais",
+      stops: [
+        { uid: "s", placeId: "x1", durationMinutes: 90, costPerPerson: 15, note: "" },
+        { uid: "l", placeId: "p2", durationMinutes: 60, costPerPerson: 20, note: "" },
+        { uid: "c", placeId: "x2", durationMinutes: 120, costPerPerson: 0, note: "" },
+      ],
+    },
+  ];
+  const result = applyExcursionRules(days, placesById(plan), plan.center);
+  assert.equal(result.removedStops, 1);
+  assert.deepEqual(stopUids(result.days[0].stops), ["s", "l"]);
+  assert.equal(result.days[0].stops[0].durationMinutes, EXCURSION_MIN_MINUTES);
+  // The input is left untouched.
+  assert.equal(days[0].stops[0].durationMinutes, 90);
+});
+
+test("the outlet search keeps only malls whose name says outlet, in any case", async () => {
+  process.env.GEOAPIFY_API_KEY = "test-key";
+  let askedName = "";
+  globalThis.fetch = async function (input: string | URL | Request) {
+    askedName = new URL(String(input)).searchParams.get("name") || "";
+    const features = [
+      { properties: { name: "Freeport Lisboa Fashion OUTLET", lat: 38.7, lon: -8.9 } },
+      { properties: { name: "Outletcenter Strada", lat: 38.7, lon: -9.2 } },
+      { properties: { name: "Colombo", lat: 38.75, lon: -9.19 } },
+    ];
+    return new Response(JSON.stringify({ features }), { status: 200 });
+  };
+  const outletGroup = BY_INTEREST.outlets[0];
+  const found = await fetchGroup({ name: "Test", lat: 1.234, lon: 5.678 }, outletGroup);
+  assert.equal(askedName, "outlet");
+  assert.deepEqual(placeNames(found), ["Freeport Lisboa Fashion OUTLET", "Outletcenter Strada"]);
 });

@@ -9,7 +9,7 @@ interface Props {
   onChange: (preferences: Preferences) => void;
 }
 
-const ALL_INTERESTS: Interest[] = ["history", "museums", "nature", "beaches", "nightlife", "shopping"];
+const ALL_INTERESTS: Interest[] = ["history", "museums", "nature", "beaches", "nightlife", "shopping", "outlets"];
 const ALL_STYLES: StayStyle[] = ["budget", "comfort", "treat"];
 const ALL_PACES: Pace[] = ["slow", "balanced", "full"];
 const ALL_TRIP_STYLES: TripStyle[] = ["classic", "balanced", "adventurous"];

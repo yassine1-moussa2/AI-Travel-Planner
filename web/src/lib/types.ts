@@ -3,7 +3,7 @@
 export type Currency = "EUR" | "USD" | "GBP" | "MAD";
 export type Pace = "slow" | "balanced" | "full";
 export type StayStyle = "budget" | "comfort" | "treat";
-export type Interest = "history" | "museums" | "nature" | "beaches" | "nightlife" | "shopping";
+export type Interest = "history" | "museums" | "nature" | "beaches" | "nightlife" | "shopping" | "outlets";
 // How far off the beaten path to go: mostly famous places, a mix, or mostly hidden finds.
 export type TripStyle = "classic" | "balanced" | "adventurous";
 

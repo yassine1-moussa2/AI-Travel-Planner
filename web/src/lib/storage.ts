@@ -1,6 +1,6 @@
 // Keeps the trip in this browser, so a refresh never loses the plan.
 // Nothing is sent anywhere: it stays on the traveller's own machine.
-import type { Leg, Trip } from "./types";
+import type { Leg, Place, Trip } from "./types";
 
 const STORAGE_KEY = "travel-planner-trip-v1";
 
@@ -35,6 +35,24 @@ export function legKey(city: string, nights: number): string {
   return city.trim().toLowerCase() + "|" + nights;
 }
 
+// Trips saved before places had fame data get neutral values, so old plans still open.
+function fillPlaceDefaults(places: Place[]): void {
+  for (const place of places) {
+    if (place.wikidataId === undefined) {
+      place.wikidataId = "";
+    }
+    if (place.fame === undefined) {
+      place.fame = -1;
+    }
+    if (place.tier === undefined) {
+      place.tier = "classic";
+    }
+    if (place.wikiUrl === undefined) {
+      place.wikiUrl = "";
+    }
+  }
+}
+
 export function loadTrip(): Trip | null {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -49,6 +67,10 @@ export function loadTrip(): Trip | null {
     for (const leg of trip.legs) {
       if (leg.status === "loading") {
         leg.status = "idle";
+      }
+      if (leg.plan !== null) {
+        fillPlaceDefaults(leg.plan.places);
+        fillPlaceDefaults(leg.plan.stays);
       }
     }
     return trip;

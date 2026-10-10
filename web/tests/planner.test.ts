@@ -11,11 +11,11 @@ import { moveStopToDay, removeStop, swapStop, updateStopNumber } from "../src/li
 import type { LegPlan, Place, Trip } from "../src/lib/types";
 
 // Three real-ish Lisbon spots: a cafe and a square ~500 m apart, a restaurant ~3 km away.
-const cafe: Place = { id: "p1", name: "Corner Cafe", category: "cafe", lat: 38.7105, lon: -9.1366, address: "", cuisine: "" };
-const square: Place = { id: "p2", name: "Big Square", category: "sight", lat: 38.7075, lon: -9.1364, address: "", cuisine: "" };
-const lunch: Place = { id: "p3", name: "Fish House", category: "food", lat: 38.7300, lon: -9.1500, address: "", cuisine: "seafood" };
-const spare: Place = { id: "p4", name: "Hill Garden", category: "nature", lat: 38.7150, lon: -9.1400, address: "", cuisine: "" };
-const hotel: Place = { id: "h1", name: "Sunny Hotel", category: "stay", lat: 38.7110, lon: -9.1370, address: "", cuisine: "" };
+const cafe: Place = { id: "p1", name: "Corner Cafe", category: "cafe", lat: 38.7105, lon: -9.1366, address: "", cuisine: "", wikidataId: "", fame: -1, tier: "classic", wikiUrl: "" };
+const square: Place = { id: "p2", name: "Big Square", category: "sight", lat: 38.7075, lon: -9.1364, address: "", cuisine: "", wikidataId: "", fame: -1, tier: "classic", wikiUrl: "" };
+const lunch: Place = { id: "p3", name: "Fish House", category: "food", lat: 38.7300, lon: -9.1500, address: "", cuisine: "seafood", wikidataId: "", fame: -1, tier: "classic", wikiUrl: "" };
+const spare: Place = { id: "p4", name: "Hill Garden", category: "nature", lat: 38.7150, lon: -9.1400, address: "", cuisine: "", wikidataId: "", fame: -1, tier: "classic", wikiUrl: "" };
+const hotel: Place = { id: "h1", name: "Sunny Hotel", category: "stay", lat: 38.7110, lon: -9.1370, address: "", cuisine: "", wikidataId: "", fame: -1, tier: "classic", wikiUrl: "" };
 
 function lisbonPlan(): LegPlan {
   return {

@@ -27,6 +27,7 @@ export function readCache<T>(key: string): T | null {
   return entry.value as T;
 }
 
-export function writeCache(key: string, value: unknown): void {
-  store.set(key, { value, expiresAt: Date.now() + ONE_DAY_MS });
+// Most answers are kept a day; slow-changing ones (like Wikipedia fame) can ask for longer.
+export function writeCache(key: string, value: unknown, keepForMs: number = ONE_DAY_MS): void {
+  store.set(key, { value, expiresAt: Date.now() + keepForMs });
 }

@@ -1,5 +1,6 @@
 // Plans one destination end to end:
 // find the city -> collect real places -> ask the AI to arrange them -> drop anything invented.
+import { ICON_COUNT, classifyPlaces } from "../fame";
 import { EUR_TO } from "../geo";
 import { groundDays } from "../grounding";
 import { aiLegSchema } from "../schema";
@@ -9,6 +10,7 @@ import { fetchPlaces, findDestination, geocode } from "./geoapify";
 import type { FoundPlace } from "./geoapify";
 import { generateJson } from "./gemini";
 import { SYSTEM_PROMPT, buildLegPrompt } from "./prompt";
+import { fetchSitelinkCounts } from "./wikidata";
 
 export interface CategoryGroup {
   categories: string;
@@ -85,27 +87,68 @@ async function collectMustSee(mustSee: string, center: Point): Promise<FoundPlac
     }
     const point = await geocode(name + ", " + center.name, center);
     if (point !== null) {
-      found.push({ name, category: "sight", lat: point.lat, lon: point.lon, address: "", area: "", cuisine: "" });
+      found.push({ name, category: "sight", lat: point.lat, lon: point.lon, address: "", area: "", cuisine: "", wikidataId: "" });
     }
   }
   return found;
 }
 
-// Give each venue a short id (p1, p2... or h1, h2...) and skip duplicates by name.
-function numberPlaces(found: FoundPlace[], prefix: string, areas: Record<string, string>): Place[] {
-  const seenNames: Record<string, boolean> = {};
+// Give each venue a short id (p1, p2... or h1, h2...) and skip duplicates by name or Wikidata id.
+// Fame starts unknown; measureFame fills it in.
+export function numberPlaces(found: FoundPlace[], prefix: string, areas: Record<string, string>): Place[] {
+  const seen: Record<string, boolean> = {};
   const places: Place[] = [];
   for (const item of found) {
-    const key = item.name.toLowerCase();
-    if (seenNames[key]) {
+    const nameKey = "name|" + item.name.toLowerCase();
+    const wikiKey = "wiki|" + item.wikidataId;
+    if (seen[nameKey] || (item.wikidataId !== "" && seen[wikiKey])) {
       continue;
     }
-    seenNames[key] = true;
+    seen[nameKey] = true;
+    if (item.wikidataId !== "") {
+      seen[wikiKey] = true;
+    }
     const id = prefix + (places.length + 1);
     areas[id] = item.area;
-    places.push({ id, name: item.name, category: item.category, lat: item.lat, lon: item.lon, address: item.address, cuisine: item.cuisine });
+    places.push({
+      id,
+      name: item.name,
+      category: item.category,
+      lat: item.lat,
+      lon: item.lon,
+      address: item.address,
+      cuisine: item.cuisine,
+      wikidataId: item.wikidataId,
+      fame: -1,
+      tier: "classic",
+      wikiUrl: "",
+    });
   }
   return places;
+}
+
+// Look up how many Wikipedia editions write about each place. Places Wikidata can't
+// measure keep fame -1; a Wikidata outage never stops the plan.
+export async function measureFame(places: Place[]): Promise<Place[]> {
+  const ids: string[] = [];
+  for (const place of places) {
+    if (place.wikidataId !== "") {
+      ids.push(place.wikidataId);
+    }
+  }
+  const counts = await fetchSitelinkCounts(ids);
+
+  const measured: Place[] = [];
+  for (const place of places) {
+    const copy = { ...place };
+    const count = counts[place.wikidataId];
+    if (count !== undefined) {
+      copy.fame = count.fame;
+      copy.wikiUrl = count.wikiUrl;
+    }
+    measured.push(copy);
+  }
+  return measured;
 }
 
 export async function planLeg(input: LegRequest): Promise<LegPlan> {
@@ -146,7 +189,8 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   }
 
   const areas: Record<string, string> = {};
-  const places = numberPlaces(combined, "p", areas);
+  const measured = await measureFame(numberPlaces(combined, "p", areas));
+  const places = classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds: {} });
   const stays = numberPlaces(stayFound, "h", areas);
   logStep("candidates", places.length + " places, " + stays.length + " stays in " + center.name);
 

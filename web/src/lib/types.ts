@@ -16,6 +16,9 @@ export type PlaceCategory =
   | "cafe"
   | "stay";
 
+// How well known a place is, measured from Wikipedia (see src/lib/fame.ts).
+export type PlaceTier = "icon" | "classic" | "hidden" | "local";
+
 // A real venue returned by the places API. The AI may only pick from these.
 export interface Place {
   id: string;
@@ -25,6 +28,10 @@ export interface Place {
   lon: number;
   address: string;
   cuisine: string;
+  wikidataId: string;
+  fame: number;
+  tier: PlaceTier;
+  wikiUrl: string;
 }
 
 export interface Point {

@@ -29,6 +29,7 @@ export interface RawPlaceProperties {
   district?: string;
   categories?: string[];
   catering?: { cuisine?: string };
+  wiki_and_media?: { wikidata?: string; wikipedia?: string };
 }
 
 export interface FoundPlace {
@@ -39,6 +40,7 @@ export interface FoundPlace {
   address: string;
   area: string;
   cuisine: string;
+  wikidataId: string;
 }
 
 async function getJson(url: URL, step: string): Promise<unknown> {
@@ -197,6 +199,11 @@ function toFoundPlace(raw: RawPlaceProperties, category: PlaceCategory): FoundPl
   if (raw.catering !== undefined && raw.catering.cuisine !== undefined) {
     cuisine = raw.catering.cuisine.replaceAll("_", " ").replaceAll(";", ", ");
   }
+  // OpenStreetMap links some places to Wikidata; that link is how we measure fame.
+  let wikidataId = "";
+  if (raw.wiki_and_media !== undefined && raw.wiki_and_media.wikidata !== undefined) {
+    wikidataId = raw.wiki_and_media.wikidata.trim();
+  }
   return {
     name: raw.name.trim(),
     category,
@@ -205,6 +212,7 @@ function toFoundPlace(raw: RawPlaceProperties, category: PlaceCategory): FoundPl
     address: raw.address_line2 || raw.formatted || "",
     area: raw.suburb || raw.district || "",
     cuisine,
+    wikidataId,
   };
 }
 

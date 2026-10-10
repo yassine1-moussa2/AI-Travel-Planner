@@ -2,11 +2,13 @@
 // Use it to tune radius, limits and categories with evidence instead of guesses.
 //
 // Usage:  npm run explore -- "Lisbon"
+import { ICON_COUNT, classifyPlaces } from "../src/lib/fame";
 import { profileGroup } from "../src/lib/profile";
 import type { GroupProfile } from "../src/lib/profile";
-import { fetchRawPlaces, geocode } from "../src/lib/server/geoapify";
-import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, STAY_CATEGORIES, STAY_RADIUS_M } from "../src/lib/server/planLeg";
-import type { Point } from "../src/lib/types";
+import { fetchPlaces, fetchRawPlaces, findDestination } from "../src/lib/server/geoapify";
+import type { FoundPlace } from "../src/lib/server/geoapify";
+import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, STAY_CATEGORIES, STAY_RADIUS_M, measureFame, numberPlaces } from "../src/lib/server/planLeg";
+import type { Place, Point } from "../src/lib/types";
 
 interface GroupToCheck {
   label: string;
@@ -76,6 +78,57 @@ function printProfiles(profiles: GroupProfile[]): void {
   }
 }
 
+// Every place the planner could offer in this city, measured and classified the same way.
+async function classifiedCandidates(center: Point): Promise<Place[]> {
+  const found: FoundPlace[] = [];
+  const groups = ALWAYS.slice();
+  for (const interest of Object.keys(BY_INTEREST) as (keyof typeof BY_INTEREST)[]) {
+    groups.push(BY_INTEREST[interest]);
+  }
+  for (const group of groups) {
+    const batch = await fetchPlaces(center, group.categories, group.category, group.limit, CITY_RADIUS_M);
+    for (const item of batch) {
+      found.push(item);
+    }
+  }
+  const measured = await measureFame(numberPlaces(found, "p", {}));
+  return classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds: {} });
+}
+
+function mostFamousFirst(first: Place, second: Place): number {
+  return second.fame - first.fame;
+}
+
+// The fame summary: what would be a must-see, and how many hidden finds there are to choose from.
+function printFame(places: Place[]): void {
+  const icons: Place[] = [];
+  let hidden = 0;
+  let withWikidata = 0;
+  for (const place of places) {
+    if (place.tier === "icon") {
+      icons.push(place);
+    }
+    if (place.tier === "hidden") {
+      hidden = hidden + 1;
+    }
+    if (place.wikidataId !== "") {
+      withWikidata = withWikidata + 1;
+    }
+  }
+  icons.sort(mostFamousFirst);
+
+  console.log("\nFame (Wikipedia editions, from Wikidata)");
+  console.log("  " + places.length + " candidates, " + withWikidata + " with a Wikidata record");
+  console.log("  Top icons:");
+  if (icons.length === 0) {
+    console.log("    none");
+  }
+  for (let rank = 0; rank < icons.length && rank < 10; rank++) {
+    console.log("    " + String(icons[rank].fame).padStart(4) + "  " + icons[rank].name);
+  }
+  console.log("  Hidden candidates: " + hidden);
+}
+
 async function main(): Promise<void> {
   try {
     process.loadEnvFile(".env.local");
@@ -90,9 +143,11 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const center = await geocode(city, null);
-  if (center === null) {
-    console.error("Couldn't find " + city + " on the map.");
+  // Same lookup as the planner, so "New York" means the city, not the state.
+  const destination = await findDestination(city);
+  const center = destination.point;
+  if (center === null || destination.kind !== "place") {
+    console.error("Couldn't find a town or city called " + city + " (" + destination.kind + ").");
     process.exit(1);
   }
   console.log("Profiling places around " + center.name + " (" + center.lat.toFixed(4) + ", " + center.lon.toFixed(4) + ")\n");
@@ -103,6 +158,7 @@ async function main(): Promise<void> {
     profiles.push(await profileOne(group, center));
   }
   printProfiles(profiles);
+  printFame(await classifiedCandidates(center));
 }
 
 main();

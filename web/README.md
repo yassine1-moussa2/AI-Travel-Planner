@@ -57,7 +57,7 @@ what makes instant, correct recalculation possible.
 | Command | Does |
 |---|---|
 | `npm run dev` | Local site at http://localhost:3000 |
-| `npm test` | 23 tests: scheduling, budget, edits, grounding, data profiling, map data, Gemini retries |
+| `npm test` | 30 tests: scheduling, budget, edits, grounding, data profiling, map data, Gemini retries, destination lookup |
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | ESLint |
 | `npm run build` | Production build |
@@ -86,6 +86,8 @@ limits or categories in `src/lib/server/planLeg.ts`.
 | "The AI model isn't available" | Google retired the model name | Set `GEMINI_MODEL=gemini-flash-latest` |
 | "free quota is used up" | Gemini free tier limit | Wait a minute; check quota in AI Studio |
 | "map service is busy" | Geoapify rate limit | Wait a few seconds; plans one city at a time already |
+| "is a whole country" / "is a whole region" | A country or region was typed as a destination | Type a town or city; add one destination per city |
+| A destination lands in the wrong country | The name also exists elsewhere ("Lake Como" in New Jersey) | Add the country: "Como, Italy" |
 | A category never shows up | Category name rejected | `npm run explore -- "<city>"`, look for "returned nothing" |
 | Few or odd places | Sparse OpenStreetMap data | Try a bigger city; check `npm run explore` |
 
@@ -107,7 +109,7 @@ src/
     ├── profile.ts       data-quality profiling
     └── server/          Geoapify, Gemini, prompt, planning, cache, debug
 scripts/explore-places.ts
-tests/  planner · mapData · gemini
+tests/  planner · mapData · gemini · destination
 ```
 
 ## Known limits

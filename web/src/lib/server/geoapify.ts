@@ -7,13 +7,15 @@ const GEOCODE_URL = "https://api.geoapify.com/v1/geocode/search";
 const PLACES_URL = "https://api.geoapify.com/v2/places";
 
 // Shape of the parts of Geoapify's answers we actually read.
-interface GeocodeResult {
+export interface GeocodeResult {
   lat: number;
   lon: number;
   formatted?: string;
   city?: string;
   name?: string;
   country?: string;
+  country_code?: string;
+  result_type?: string;
 }
 
 export interface RawPlaceProperties {
@@ -54,6 +56,28 @@ async function getJson(url: URL, step: string): Promise<unknown> {
   return response.json();
 }
 
+// Ask the geocoder about a piece of text. Extra settings narrow the search (limit, filter, type).
+async function searchByName(text: string, settings: Record<string, string>): Promise<GeocodeResult[]> {
+  const url = new URL(GEOCODE_URL);
+  url.searchParams.set("text", text);
+  url.searchParams.set("format", "json");
+  for (const name in settings) {
+    url.searchParams.set(name, settings[name]);
+  }
+  url.searchParams.set("apiKey", requireEnv("GEOAPIFY_API_KEY"));
+  const data = (await getJson(url, "geocode")) as { results?: GeocodeResult[] };
+  return data.results || [];
+}
+
+// A short readable name for a result, like "Lisbon, Portugal".
+function toPoint(result: GeocodeResult, text: string): Point {
+  let label = result.city || result.name || text;
+  if (result.country) {
+    label = label + ", " + result.country;
+  }
+  return { name: label, lat: result.lat, lon: result.lon };
+}
+
 // Turn "Lisbon" or "Alfama, Lisbon" into coordinates. Optionally only look near a point.
 export async function geocode(text: string, near: Point | null): Promise<Point | null> {
   let nearKey = "";
@@ -67,31 +91,85 @@ export async function geocode(text: string, near: Point | null): Promise<Point |
   }
 
   const done = startTimer("geocode");
-  const url = new URL(GEOCODE_URL);
-  url.searchParams.set("text", text);
-  url.searchParams.set("limit", "1");
-  url.searchParams.set("format", "json");
-  url.searchParams.set("apiKey", requireEnv("GEOAPIFY_API_KEY"));
+  const settings: Record<string, string> = { limit: "1" };
   if (near !== null) {
-    url.searchParams.set("filter", "circle:" + near.lon + "," + near.lat + ",30000");
+    settings.filter = "circle:" + near.lon + "," + near.lat + ",30000";
   }
-
-  const data = (await getJson(url, "geocode")) as { results?: GeocodeResult[] };
-  const results = data.results || [];
+  const results = await searchByName(text, settings);
   if (results.length === 0) {
     done(text + " -> not found");
     return null;
   }
 
-  const best = results[0];
-  let label = best.city || best.name || text;
-  if (best.country) {
-    label = label + ", " + best.country;
-  }
-  const point: Point = { name: label, lat: best.lat, lon: best.lon };
+  const point = toPoint(results[0], text);
   writeCache(cacheKey, point);
-  done(text + " -> " + label);
+  done(text + " -> " + point.name);
   return point;
+}
+
+export type DestinationKind = "place" | "country" | "region" | "none";
+
+export interface DestinationLookup {
+  kind: DestinationKind;
+  point: Point | null;
+}
+
+// Streets and buildings share names with famous places ("Amalfi Coast" is also a street in
+// Australia), but nobody travels to a street, so they are never taken as a destination.
+const NOT_A_DESTINATION: Record<string, boolean> = { street: true, building: true };
+
+// Pick the best answer a traveller could mean, and say whether it is too big to plan as one stop.
+// Countries and regions ("Morocco", "Tuscany") have a centre in the middle of nowhere,
+// which is why they used to fail with "too few places".
+export function chooseDestination(results: GeocodeResult[]): { kind: DestinationKind; result: GeocodeResult | null } {
+  for (const result of results) {
+    const type = result.result_type || "";
+    if (NOT_A_DESTINATION[type]) {
+      continue;
+    }
+    if (type === "country") {
+      return { kind: "country", result };
+    }
+    if (type === "state") {
+      return { kind: "region", result };
+    }
+    return { kind: "place", result };
+  }
+  return { kind: "none", result: null };
+}
+
+// Find where a trip destination is, and whether it can be planned as one place.
+export async function findDestination(text: string): Promise<DestinationLookup> {
+  const cacheKey = "destination|" + text.toLowerCase();
+  const cached = readCache<DestinationLookup>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const done = startTimer("destination");
+  const choice = chooseDestination(await searchByName(text, { limit: "5" }));
+  let lookup: DestinationLookup = { kind: choice.kind, point: null };
+  if (choice.result !== null) {
+    lookup = { kind: choice.kind, point: toPoint(choice.result, text) };
+  }
+
+  // "New York" is first a state, but travellers mean the city. Ask once more for a city
+  // with that name in the same country; for "Morocco" or "Tuscany" there is none.
+  const tooBig = choice.kind === "country" || choice.kind === "region";
+  if (tooBig && choice.result !== null && choice.result.country_code) {
+    const cities = await searchByName(text, { limit: "1", type: "city", filter: "countrycode:" + choice.result.country_code });
+    if (cities.length > 0 && cities[0].result_type === "city") {
+      lookup = { kind: "place", point: toPoint(cities[0], text) };
+    }
+  }
+
+  writeCache(cacheKey, lookup);
+  let found = "nothing usable";
+  if (lookup.point !== null) {
+    found = lookup.point.name;
+  }
+  done(text + " -> " + lookup.kind + " " + found);
+  return lookup;
 }
 
 // Raw features, used by the planner and by the data-exploration script.

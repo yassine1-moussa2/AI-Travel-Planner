@@ -5,7 +5,7 @@ import { groundDays } from "../grounding";
 import { aiLegSchema } from "../schema";
 import type { Interest, LegPlan, LegRequest, Place, PlaceCategory, Point, StayStyle } from "../types";
 import { PlannerError, logStep } from "./debug";
-import { fetchPlaces, geocode } from "./geoapify";
+import { fetchPlaces, findDestination, geocode } from "./geoapify";
 import type { FoundPlace } from "./geoapify";
 import { generateJson } from "./gemini";
 import { SYSTEM_PROMPT, buildLegPrompt } from "./prompt";
@@ -109,9 +109,18 @@ function numberPlaces(found: FoundPlace[], prefix: string, areas: Record<string,
 }
 
 export async function planLeg(input: LegRequest): Promise<LegPlan> {
-  const center = await geocode(input.city, null);
+  // A trip stop must be a town or city: a country or region has no centre worth planning around.
+  const destination = await findDestination(input.city);
+  const quoted = "\"" + input.city + "\"";
+  if (destination.kind === "country") {
+    throw new PlannerError(422, quoted + " is a whole country. Add each town or city you want to visit as its own destination.", "destination is a country: " + input.city);
+  }
+  if (destination.kind === "region") {
+    throw new PlannerError(422, quoted + " is a whole region. Choose the town or city you'll stay in, and add more destinations for more stops.", "destination is a region: " + input.city);
+  }
+  const center = destination.point;
   if (center === null) {
-    throw new PlannerError(404, "We couldn't find \"" + input.city + "\" on the map. Try adding the country, like \"Porto, Portugal\".", "geocode returned nothing for " + input.city);
+    throw new PlannerError(404, "We couldn't find a town or city called " + quoted + ". Try adding the country, like \"Porto, Portugal\".", "no usable geocode result for " + input.city);
   }
 
   // Sleep near the area they asked for, if we can find it; otherwise near the centre.

@@ -71,6 +71,16 @@ function warmBaseMap(map: MapLibreMap): void {
   }
 }
 
+// MapLibre opens the compact credits at first, and on a phone-sized map they cover the stops.
+// Fold them to the small "i" button, as MapLibre itself does after the first drag;
+// one tap on "i" shows them again.
+function foldAttribution(container: HTMLElement): void {
+  const attribution = container.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact-show");
+  if (attribution !== null) {
+    attribution.classList.remove("maplibregl-compact-show");
+  }
+}
+
 // The dotted line joining the stops, added once the style is ready.
 function addRouteLayer(map: MapLibreMap): void {
   map.addSource(ROUTE_SOURCE, { type: "geojson", data: EMPTY_ROUTE });
@@ -175,6 +185,11 @@ export default function LegMap(props: Props) {
       if (latestDataRef.current !== null) {
         setRoute(map, latestDataRef.current);
       }
+    });
+
+    // By "load" the credits are filled in, so folding them now sticks.
+    map.once("load", () => {
+      foldAttribution(container);
     });
 
     // Before the style arrives, any error means there is no map to show (offline, provider down).

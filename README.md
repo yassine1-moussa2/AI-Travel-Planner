@@ -1,4 +1,11 @@
-# AI Travel Planner — core engine
+# AI Travel Planner
+
+**The main app is the website in [`web/`](web/) — see [`web/README.md`](web/README.md)
+to run it.**
+
+The CLI in `src/` (described below) is the original prototype, kept for reference.
+
+## The original prototype — core engine
 
 This is the **core AI engine** from the full project plan: retrieval-then-generate
 itinerary building. It's a standalone TypeScript package with no framework, no DB,
@@ -66,9 +73,11 @@ src/
 
 ## Next steps (not built here)
 
-- Wrap this in a Next.js Route Handler (`POST /api/trips/generate`) instead of a CLI.
-- Replace `simpleCache.ts` with real Drizzle/Postgres queries.
-- Add Auth.js so trips are linked to a `userId`.
-- Build the itinerary UI + MapLibre map.
+- [x] Wrap this in a Next.js Route Handler (`POST /api/trips/generate`) instead of a CLI.
+  Done in `web/` as `POST /api/plan-leg`.
+- [ ] Replace `simpleCache.ts` with real Drizzle/Postgres queries.
+- [ ] Add Auth.js so trips are linked to a `userId`.
+- [x] Build the itinerary UI (done in `web/`).
+- [ ] Add the MapLibre map.
 
 See `ai-travel-planner-plan.md` for the full schedule.

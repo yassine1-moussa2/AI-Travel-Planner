@@ -1,0 +1,851 @@
+/* Terrasse — late afternoon on a Mediterranean terrace.
+   One light scheme on purpose: no dark mode, no theme switcher. */
+
+:root {
+  --sand: #fce6d2;          /* lime-washed wall in evening sun: the page */
+  --paper: #fff6ec;         /* postcard paper: day sheets and inputs */
+  --line: #ecc9ad;          /* warm hairlines */
+  --ink: #3a1d2c;           /* aubergine instead of black */
+  --ink-soft: #6e4a5a;
+  --bougainvillea: #b42f66; /* actions */
+  --bougainvillea-deep: #8e2050;
+  --marigold: #f0a43a;      /* the budget gauge */
+  --sea: #1e6a82;           /* painted shutters: anything about travelling */
+
+  --font-display: "Caprasimo", Georgia, "Times New Roman", serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sand);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+a {
+  color: var(--sea);
+}
+
+:focus-visible {
+  outline: 3px solid var(--sea);
+  outline-offset: 2px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- Hero: the trip as a sentence, under a sunset ---------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem 0 4.5rem;
+  background:
+    radial-gradient(circle at 82% 18%, #ffe6a6 0, #ffd98a 9rem, transparent 9.1rem),
+    linear-gradient(175deg, #f7be63 0%, #f29a64 55%, #ec8278 100%);
+}
+
+.wordmark {
+  margin: 0 0 3rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+
+.hero h1 {
+  position: relative;
+  margin: 0 0 2rem;
+  max-width: 12ch;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3.25rem, 9vw, 7rem);
+  line-height: 0.95;
+}
+
+.sentence {
+  position: relative;
+  max-width: 62rem;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 2;
+}
+
+.sentence p {
+  margin: 0 0 0.5rem;
+}
+
+.blank {
+  padding: 0 0.3em;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 6px 6px 0 0;
+  background: rgba(255, 246, 236, 0.45);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.blank:hover {
+  background: rgba(255, 246, 236, 0.7);
+}
+
+.blank:focus-visible {
+  background: var(--paper);
+  outline-offset: 3px;
+}
+
+.blank::placeholder {
+  color: rgba(58, 29, 44, 0.45);
+}
+
+.blank-city {
+  width: 7.5em;
+}
+
+.blank-number,
+.blank-money {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.blank-number {
+  width: 2.4em;
+  text-align: center;
+}
+
+.blank-money {
+  width: 4.6em;
+}
+
+.blank-number::-webkit-inner-spin-button,
+.blank-number::-webkit-outer-spin-button,
+.blank-money::-webkit-inner-spin-button,
+.blank-money::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.blank-currency {
+  cursor: pointer;
+}
+
+.text-button {
+  margin-left: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 0.75em;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.text-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Preferences ---------- */
+
+.hero-inner,
+.prefs,
+.plan-action,
+.plan,
+.footer {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding-left: clamp(1.25rem, 5vw, 4rem);
+  padding-right: clamp(1.25rem, 5vw, 4rem);
+}
+
+.prefs {
+  padding-top: 3.5rem;
+}
+
+.prefs h2 {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  line-height: 1.1;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 2.25rem;
+}
+
+.chip {
+  padding: 0.55rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: rgba(255, 246, 236, 0.7);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--bougainvillea);
+  background: var(--bougainvillea);
+  color: var(--paper);
+}
+
+.prefs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: 0.75rem;
+  padding: 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.choices {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.choice {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  cursor: pointer;
+}
+
+.choice input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--bougainvillea);
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.field > span {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.field input::placeholder {
+  color: #a9879a;
+}
+
+/* ---------- The button that starts it all ---------- */
+
+.plan-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.primary-button {
+  padding: 1rem 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bougainvillea);
+  box-shadow: 0 6px 0 var(--bougainvillea-deep);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.primary-button:hover {
+  background: #a3285b;
+}
+
+.primary-button:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--bougainvillea-deep);
+}
+
+.primary-button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.plan-action .text-button {
+  font-size: 1rem;
+}
+
+.plan-message {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--bougainvillea-deep);
+  font-weight: 600;
+}
+
+.secondary-button {
+  padding: 0.55rem 1.2rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- The plan ---------- */
+
+.plan {
+  padding-bottom: 2rem;
+}
+
+.leg {
+  margin-top: 3.5rem;
+}
+
+.leg-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  line-height: 1;
+}
+
+.leg-dates {
+  margin: 0.4rem 0 1.25rem;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+}
+
+.leg-status {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid var(--marigold);
+  border-radius: 0 10px 10px 0;
+  background: var(--paper);
+}
+
+.leg-status p {
+  margin: 0 0 0.75rem;
+}
+
+.leg-status p:last-child {
+  margin-bottom: 0;
+}
+
+.leg-error {
+  border-left-color: var(--bougainvillea);
+}
+
+.leg-loading::before {
+  content: "";
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.6rem;
+  border-radius: 50%;
+  background: var(--marigold);
+  animation: breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.stay {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0 1.25rem;
+  align-items: end;
+  padding: 1.25rem 1.25rem 0.25rem;
+  border-radius: 14px;
+  background: rgba(255, 246, 236, 0.6);
+}
+
+.stay-none {
+  margin: 0 0 1rem;
+  color: var(--ink-soft);
+}
+
+.estimate-hint {
+  grid-column: 1 / -1;
+  margin: 0 0 1rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* A day is a sheet of postcard paper. */
+.day {
+  margin-top: 1.25rem;
+  padding: 1.5rem clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid #f1d3ba;
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.day-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.day-date {
+  margin-left: 0.6rem;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.day-title {
+  margin: 0.15rem 0 1rem;
+  color: var(--bougainvillea-deep);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.day-empty {
+  color: var(--ink-soft);
+}
+
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stop {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  padding: 0.75rem 0;
+}
+
+.stop-start {
+  display: block;
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stop-end {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stop-name {
+  display: inline;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.stop-kind {
+  margin-left: 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.stop-note {
+  max-width: 60ch;
+  margin: 0.3rem 0 0.5rem;
+  color: var(--ink-soft);
+}
+
+.stop-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.stop-numbers label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stop-numbers input {
+  width: 4.5em;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.stop-numbers span {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* The painted-shutter blue path between two stops. */
+.hop {
+  padding: 0.1rem 0 0.1rem 6.5rem;
+  color: var(--sea);
+  font-size: 0.85rem;
+}
+
+.hop::before {
+  content: "";
+  display: inline-block;
+  height: 1.3em;
+  margin-right: 0.6rem;
+  border-left: 2px dotted var(--sea);
+  vertical-align: middle;
+}
+
+.hop-transit::before {
+  border-left-style: dashed;
+}
+
+.stop-menu {
+  position: relative;
+}
+
+.stop-menu summary {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.stop-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.stop-menu[open] summary {
+  border-color: var(--ink);
+}
+
+.stop-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 30;
+  width: 17rem;
+  padding: 1rem 1rem 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 14px 34px rgba(58, 29, 44, 0.18);
+}
+
+.stop-menu-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.stop-menu-row button {
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--sand);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.stop-menu-row button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.stop-menu-row .danger {
+  margin-left: auto;
+  color: var(--bougainvillea-deep);
+  font-weight: 700;
+}
+
+.notice {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(180, 47, 102, 0.08);
+  color: var(--bougainvillea-deep);
+  font-size: 0.95rem;
+}
+
+.add-stop {
+  max-width: 24rem;
+  margin: 1.25rem 0 0;
+}
+
+/* A journey between places: a dashed line, like a route drawn on a paper map. */
+.transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13rem;
+  gap: 0 1.5rem;
+  align-items: end;
+  margin-top: 3rem;
+  padding: 0.5rem 0 0 1.25rem;
+  border-left: 3px dashed var(--sea);
+}
+
+.transfer-route {
+  margin: 0;
+  font-weight: 700;
+}
+
+.transfer-detail {
+  margin: 0.15rem 0 1rem;
+  color: var(--sea);
+}
+
+.transfer .field {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.tips {
+  margin-top: 1.5rem;
+  padding-left: 1.25rem;
+}
+
+.tips h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.tips ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+
+.tips li {
+  margin-bottom: 0.35rem;
+}
+
+/* ---------- The budget, as a luggage tag pinned to the bottom ---------- */
+
+.budget {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 10;
+  width: min(48rem, calc(100% - 1.5rem));
+  padding: 0.85rem 1.25rem 0.85rem 2.4rem;
+  transform: translateX(-50%);
+  border-radius: 16px;
+  background: var(--ink);
+  box-shadow: 0 12px 34px rgba(58, 29, 44, 0.35);
+  color: var(--paper);
+}
+
+/* The punched hole of the tag. */
+.budget::before {
+  content: "";
+  position: absolute;
+  top: 1.15rem;
+  left: 0.95rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--sand);
+}
+
+.budget summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.3rem 1rem;
+  align-items: center;
+  list-style: none;
+  cursor: pointer;
+}
+
+.budget summary::-webkit-details-marker {
+  display: none;
+}
+
+.budget-total {
+  font-weight: 700;
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-of {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.budget-gauge {
+  display: block;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 246, 236, 0.18);
+}
+
+.budget-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--marigold);
+  transition: width 0.3s ease;
+}
+
+.budget-over .budget-fill {
+  background: #f2779f;
+}
+
+.budget-verdict {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.budget-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1.5rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.budget-breakdown div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(255, 246, 236, 0.15);
+}
+
+.budget-breakdown dt {
+  opacity: 0.8;
+}
+
+.budget-breakdown dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  padding-top: 2rem;
+  padding-bottom: 10rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 760px) {
+  .wordmark {
+    margin-bottom: 2rem;
+  }
+
+  .prefs-grid,
+  .stay,
+  .transfer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .transfer .field {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .stop {
+    grid-template-columns: 4rem minmax(0, 1fr);
+  }
+
+  .stop-menu {
+    grid-column: 2;
+  }
+
+  .stop-menu-panel {
+    right: auto;
+    left: 0;
+    width: min(17rem, calc(100vw - 7rem));
+  }
+
+  .hop {
+    padding-left: 5rem;
+  }
+
+  .stop-numbers {
+    gap: 0.5rem 0.9rem;
+  }
+
+  .stop-numbers input {
+    width: 3.4em;
+  }
+
+  .budget-breakdown {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

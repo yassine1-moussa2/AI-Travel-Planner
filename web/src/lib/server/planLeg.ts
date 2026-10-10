@@ -1,5 +1,6 @@
 // Plans one destination end to end:
 // find the city -> collect real places -> ask the AI to arrange them -> drop anything invented.
+import { selectCandidates } from "../candidates";
 import { ICON_COUNT, classifyPlaces } from "../fame";
 import { EUR_TO } from "../geo";
 import { groundDays } from "../grounding";
@@ -10,7 +11,7 @@ import { fetchPlaces, findDestination, geocode } from "./geoapify";
 import type { FoundPlace } from "./geoapify";
 import { generateJson } from "./gemini";
 import { SYSTEM_PROMPT, buildLegPrompt } from "./prompt";
-import { fetchSitelinkCounts } from "./wikidata";
+import { fetchSitelinkCounts, findFamousNearby } from "./wikidata";
 
 export interface CategoryGroup {
   categories: string;
@@ -19,6 +20,8 @@ export interface CategoryGroup {
 }
 
 export const CITY_RADIUS_M = 5000;
+// Must-sees can be further out than everyday stops: the Brooklyn Bridge, Belém Tower.
+export const ICON_RADIUS_M = 20000;
 export const STAY_RADIUS_M = 2500;
 const MAX_MUST_SEE = 5;
 
@@ -89,6 +92,16 @@ async function collectMustSee(mustSee: string, center: Point): Promise<FoundPlac
     if (point !== null) {
       found.push({ name, category: "sight", lat: point.lat, lon: point.lon, address: "", area: "", cuisine: "", wikidataId: "" });
     }
+  }
+  return found;
+}
+
+// The most famous visitable places within ICON_RADIUS_M, as candidate sights.
+export async function collectFamous(center: Point): Promise<FoundPlace[]> {
+  const famous = await findFamousNearby(center, ICON_RADIUS_M);
+  const found: FoundPlace[] = [];
+  for (const item of famous) {
+    found.push({ name: item.name, category: "sight", lat: item.lat, lon: item.lon, address: "", area: "", cuisine: "", wikidataId: item.wikidataId });
   }
   return found;
 }
@@ -176,12 +189,19 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   }
 
   const mustSee = await collectMustSee(input.preferences.mustSee, center);
+  const famous = await collectFamous(center);
   const general = await collectPlaces(center, input.preferences.interests);
   const stayFound = await fetchPlaces(stayCenter, STAY_CATEGORIES[input.preferences.stayStyle], "stay", 12, STAY_RADIUS_M);
 
-  // Must-see places go first so they survive de-duplication.
+  // Must-see places go first so they survive de-duplication, then the famous ones,
+  // so a famous place keeps its Wikidata identity when Geoapify lists it too.
   const combined: FoundPlace[] = [];
+  const asked: Record<string, boolean> = {};
   for (const item of mustSee) {
+    combined.push(item);
+    asked[item.name.toLowerCase()] = true;
+  }
+  for (const item of famous) {
     combined.push(item);
   }
   for (const item of general) {
@@ -190,7 +210,16 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
 
   const areas: Record<string, string> = {};
   const measured = await measureFame(numberPlaces(combined, "p", areas));
-  const places = classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds: {} });
+  const classified = classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds: {} });
+
+  // Keep the list near 70 places; what the traveller named is always kept.
+  const keepIds: Record<string, boolean> = {};
+  for (const place of classified) {
+    if (asked[place.name.toLowerCase()]) {
+      keepIds[place.id] = true;
+    }
+  }
+  const places = selectCandidates(classified, { keepIds });
   const stays = numberPlaces(stayFound, "h", areas);
   logStep("candidates", places.length + " places, " + stays.length + " stays in " + center.name);
 
@@ -198,7 +227,7 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
     throw new PlannerError(422, "We found too few places in " + center.name + " to build a good plan. Try a bigger nearby city.", "only " + places.length + " named places");
   }
 
-  const prompt = buildLegPrompt(input, center.name, places, stays, areas);
+  const prompt = buildLegPrompt(input, center, places, stays, areas);
   const ai = await generateJson(SYSTEM_PROMPT, prompt, aiLegSchema);
 
   const validIds: Record<string, boolean> = {};

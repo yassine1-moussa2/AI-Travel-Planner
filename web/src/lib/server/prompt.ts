@@ -1,6 +1,7 @@
 // Builds the instructions sent to the AI for one destination.
+import { distanceKm } from "../geo";
 import { dayStartMinutes, formatClock } from "../recalculate";
-import type { LegRequest, Place } from "../types";
+import type { LegRequest, Place, Point } from "../types";
 
 export const SYSTEM_PROMPT =
   "You are a friend who lives in the city and plans trips for visitors. " +
@@ -15,6 +16,27 @@ const STYLE_WORDS = {
   treat: "a treat, upscale",
 };
 
+// The tier, with fame when it is known: "icon, fame 54" or "local".
+function describeFame(place: Place): string {
+  if (place.fame < 0) {
+    return place.tier;
+  }
+  return place.tier + ", fame " + place.fame;
+}
+
+// One candidate: "p12 | Ponte 25 de Abril viewpoint | sight | icon, fame 54 | 6.2 km from centre".
+export function describeCandidate(place: Place, center: Point, area: string): string {
+  const km = distanceKm(center.lat, center.lon, place.lat, place.lon);
+  let line = place.id + " | " + place.name + " | " + place.category + " | " + describeFame(place) + " | " + km.toFixed(1) + " km from centre";
+  if (place.cuisine !== "") {
+    line = line + " | cuisine: " + place.cuisine;
+  }
+  if (area !== "") {
+    line = line + " | area: " + area;
+  }
+  return line;
+}
+
 function describePlace(place: Place, extra: string): string {
   let line = place.id + " | " + place.name + " | " + place.category;
   if (place.cuisine !== "") {
@@ -26,8 +48,17 @@ function describePlace(place: Place, extra: string): string {
   return line;
 }
 
-export function buildLegPrompt(input: LegRequest, cityName: string, places: Place[], stays: Place[], areas: Record<string, string>): string {
+// With 3 days or more there is room for an icon every day.
+function iconMinimum(nights: number): string {
+  if (nights >= 3) {
+    return ", and at least one icon every day";
+  }
+  return "";
+}
+
+export function buildLegPrompt(input: LegRequest, center: Point, places: Place[], stays: Place[], areas: Record<string, string>): string {
   const prefs = input.preferences;
+  const cityName = center.name;
   const lines: string[] = [];
 
   lines.push("Plan " + input.nights + " day(s) in " + cityName + " for " + input.travelers + " traveller(s).");
@@ -49,9 +80,10 @@ export function buildLegPrompt(input: LegRequest, cityName: string, places: Plac
   lines.push(stayWish + ".");
 
   lines.push("");
-  lines.push("PLACES (id | name | type | details):");
+  lines.push("PLACES (id | name | type | tier and fame | distance | details):");
+  lines.push("fame = number of Wikipedia languages writing about the place. icon = must-see, hidden = known to few, local = no Wikipedia page at all.");
   for (const place of places) {
-    lines.push(describePlace(place, areas[place.id] || ""));
+    lines.push(describeCandidate(place, center, areas[place.id] || ""));
   }
   lines.push("");
   lines.push("STAYS (id | name | type):");
@@ -62,7 +94,9 @@ export function buildLegPrompt(input: LegRequest, cityName: string, places: Plac
   lines.push("");
   lines.push("Rules:");
   lines.push("- Every day has lunch at a food place in the middle of the day and dinner at a food place as the last or second-to-last stop. A cafe can open the day.");
-  lines.push("- Order each day so consecutive stops are close together (use the areas).");
+  lines.push("- Places marked icon are must-sees. Include as many icons as the days allow" + iconMinimum(input.nights) + ".");
+  lines.push("- Build each day around one area. A far icon anchors its day together with stops near it; never zigzag across the city. Use the areas and distances.");
+  lines.push("- Order each day so consecutive stops are close together.");
   lines.push("- Never use the same place twice across the whole stay.");
   lines.push("- costPerPerson: realistic entry ticket or meal price for ONE person; 0 for free places like parks, viewpoints and squares.");
   lines.push("- durationMinutes: realistic time spent there.");

@@ -1,6 +1,7 @@
 "use client";
 // One day of the trip, laid out as a timeline. Times are recalculated on every render.
 import type { ChangeEvent, ReactNode } from "react";
+import { isLongHop } from "@/lib/discovery";
 import { scheduleDay } from "@/lib/recalculate";
 import { addStop } from "@/lib/tripEdits";
 import { describeHop } from "@/lib/words";
@@ -47,6 +48,14 @@ export default function DayPlan(props: Props) {
           {describeHop(scheduled.hopBefore)}
         </li>,
       );
+      // A far stop is worth it, but the traveller should know before they go.
+      if (isLongHop(scheduled.hopBefore)) {
+        items.push(
+          <li key={scheduled.stop.uid + "-long"} className="hop-notice">
+            Long trip across town: about {scheduled.hopBefore.minutes} min each way.
+          </li>,
+        );
+      }
     }
     items.push(
       <StopRow

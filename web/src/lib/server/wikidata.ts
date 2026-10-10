@@ -134,3 +134,113 @@ export async function fetchSitelinkCounts(ids: string[]): Promise<Record<string,
   }
   return result;
 }
+
+const SPARQL_URL = "https://query.wikidata.org/sparql";
+// How many famous places to bring back per city; the rest of the list comes from Geoapify.
+const FAMOUS_LIMIT = 25;
+
+// Kinds of things a visitor can go and see (each includes its subclasses): structures such as
+// bridges, towers and churches; museums; parks; monuments; squares; tourist attractions;
+// landmarks; archaeological sites; gardens; neighbourhoods; streets; zoos; aquariums; sculptures.
+const VISITABLE = "wd:Q811979 wd:Q33506 wd:Q22698 wd:Q4989906 wd:Q174782 wd:Q570116 wd:Q2319498 wd:Q839954 wd:Q1107656 wd:Q123705 wd:Q83620 wd:Q43501 wd:Q2281788 wd:Q860861";
+// Famous, but not a sightseeing stop for most visitors: airports, and sports venues
+// (stadiums and arenas are offered to sport fans through their hobby instead).
+const NOT_SIGHTSEEING = "wd:Q1248784 wd:Q1076486";
+
+// The most-linked items near a point, kept only if they are something a visitor can see.
+// The inner query ranks by sitelinks first, so the type check only runs on 200 items.
+function famousNearbyQuery(center: { lat: number; lon: number }, radiusKm: number): string {
+  return `SELECT ?item ?itemLabel ?loc WHERE {
+  {
+    SELECT ?item ?links ?loc WHERE {
+      SERVICE wikibase:around {
+        ?item wdt:P625 ?loc .
+        bd:serviceParam wikibase:center "Point(${center.lon} ${center.lat})"^^geo:wktLiteral .
+        bd:serviceParam wikibase:radius "${radiusKm}" .
+      }
+      ?item wikibase:sitelinks ?links .
+      FILTER(?links >= 8)
+    }
+    ORDER BY DESC(?links)
+    LIMIT 200
+  }
+  FILTER EXISTS { VALUES ?visitable { ${VISITABLE} } ?item wdt:P31/wdt:P279* ?visitable . }
+  FILTER NOT EXISTS { VALUES ?skip { ${NOT_SIGHTSEEING} } ?item wdt:P31/wdt:P279* ?skip . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
+}
+ORDER BY DESC(?links)
+LIMIT 60`;
+}
+
+interface SparqlReply {
+  results?: { bindings?: Record<string, { value: string }>[] };
+}
+
+// "Point(-74.0 40.7)" -> [lon, lat]
+function parsePoint(text: string): [number, number] | null {
+  const match = /Point\(([-0-9.eE]+) ([-0-9.eE]+)\)/.exec(text);
+  if (match === null) {
+    return null;
+  }
+  return [Number(match[1]), Number(match[2])];
+}
+
+export interface FamousPlace {
+  wikidataId: string;
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+// Read the query answer: one place per item, skipping items without a real name or position.
+export function readFamousPlaces(reply: SparqlReply, limit: number): FamousPlace[] {
+  const places: FamousPlace[] = [];
+  const seen: Record<string, boolean> = {};
+  const bindings = reply.results?.bindings || [];
+  for (const row of bindings) {
+    if (places.length >= limit) {
+      break;
+    }
+    const id = (row.item?.value || "").split("/").pop() || "";
+    const name = row.itemLabel?.value || "";
+    const point = parsePoint(row.loc?.value || "");
+    // An item seen twice (several coordinates), or with no label (the label is then its Q-id).
+    if (seen[id] || point === null || name === "" || name === id) {
+      continue;
+    }
+    seen[id] = true;
+    places.push({ wikidataId: id, name, lon: point[0], lat: point[1] });
+  }
+  return places;
+}
+
+// The most famous visitable places within a radius, most famous first. Far ones included:
+// this is how the Brooklyn Bridge reaches a New York plan. Empty on any failure.
+export async function findFamousNearby(center: { lat: number; lon: number }, radiusMeters: number): Promise<FamousPlace[]> {
+  const radiusKm = Math.round(radiusMeters / 1000);
+  const cacheKey = "famous|" + center.lat.toFixed(3) + "," + center.lon.toFixed(3) + "|" + radiusKm;
+  const cached = readCache<FamousPlace[]>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const done = startTimer("wikidata famous");
+  try {
+    const url = new URL(SPARQL_URL);
+    url.searchParams.set("query", famousNearbyQuery(center, radiusKm));
+    const response = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, Accept: "application/sparql-results+json" },
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!response.ok) {
+      throw new Error("Wikidata query " + response.status);
+    }
+    const places = readFamousPlaces((await response.json()) as SparqlReply, FAMOUS_LIMIT);
+    writeCache(cacheKey, places, THIRTY_DAYS_MS);
+    done(places.length + " famous places");
+    return places;
+  } catch (error) {
+    logError("wikidata famous", error);
+    return [];
+  }
+}

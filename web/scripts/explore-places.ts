@@ -7,7 +7,7 @@ import { profileGroup } from "../src/lib/profile";
 import type { GroupProfile } from "../src/lib/profile";
 import { fetchPlaces, fetchRawPlaces, findDestination } from "../src/lib/server/geoapify";
 import type { FoundPlace } from "../src/lib/server/geoapify";
-import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, STAY_CATEGORIES, STAY_RADIUS_M, measureFame, numberPlaces } from "../src/lib/server/planLeg";
+import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, STAY_CATEGORIES, STAY_RADIUS_M, collectFamous, measureFame, numberPlaces } from "../src/lib/server/planLeg";
 import type { Place, Point } from "../src/lib/types";
 
 interface GroupToCheck {
@@ -80,7 +80,8 @@ function printProfiles(profiles: GroupProfile[]): void {
 
 // Every place the planner could offer in this city, measured and classified the same way.
 async function classifiedCandidates(center: Point): Promise<Place[]> {
-  const found: FoundPlace[] = [];
+  // Famous places first, as in the planner, so they keep their Wikidata identity.
+  const found: FoundPlace[] = await collectFamous(center);
   const groups = ALWAYS.slice();
   for (const interest of Object.keys(BY_INTEREST) as (keyof typeof BY_INTEREST)[]) {
     groups.push(BY_INTEREST[interest]);

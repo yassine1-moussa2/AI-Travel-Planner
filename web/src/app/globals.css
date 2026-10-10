@@ -614,6 +614,13 @@ legend {
   font-weight: 700;
 }
 
+/* Under a hop that takes longer than 45 minutes. */
+.hop-notice {
+  margin: 0.15rem 0 0.35rem 6.5rem;
+  color: var(--bougainvillea-deep);
+  font-size: 0.85rem;
+}
+
 .notice {
   margin: 0.75rem 0 0;
   padding: 0.6rem 0.85rem;
@@ -652,6 +659,46 @@ legend {
 .transfer .field {
   grid-column: 2;
   grid-row: 1 / span 2;
+}
+
+/* Famous places the plan left out, each with a one-tap way back in. */
+.famous {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #f1d3ba;
+  border-radius: 14px;
+  background: rgba(255, 246, 236, 0.6);
+}
+
+.famous h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.famous ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.famous li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid #f1d3ba;
+}
+
+.famous li:first-child {
+  border-top: 0;
+}
+
+.small-button {
+  padding: 0.25rem 0.85rem;
+  border-width: 1.5px;
+  font-size: 0.85rem;
 }
 
 .tips {
@@ -957,6 +1004,10 @@ legend {
 
   .hop {
     padding-left: 5rem;
+  }
+
+  .hop-notice {
+    margin-left: 5rem;
   }
 
   .stop-numbers {

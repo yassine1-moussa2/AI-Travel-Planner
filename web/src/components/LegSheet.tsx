@@ -3,10 +3,11 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
+import { missingIcons, nearestDay } from "@/lib/discovery";
 import { dayMapData } from "@/lib/mapData";
 import { formatDayDate, placesById, scheduleDay } from "@/lib/recalculate";
 import { legKey } from "@/lib/storage";
-import { setLegNumber, setStay, unusedPlaces } from "@/lib/tripEdits";
+import { addStop, setLegNumber, setStay, unusedPlaces } from "@/lib/tripEdits";
 import type { Trip } from "@/lib/types";
 import DayPlan from "./DayPlan";
 
@@ -143,6 +144,20 @@ export default function LegSheet(props: Props) {
     );
   }
 
+  // Famous places the plan skipped, each with the day it fits best. No AI call: pure distance.
+  const famousRows: ReactNode[] = [];
+  for (const icon of missingIcons(plan)) {
+    const bestDay = nearestDay(plan, icon, index);
+    famousRows.push(
+      <li key={icon.id}>
+        <span>{icon.name}</span>
+        <button type="button" className="secondary-button small-button" onClick={() => onTripChange(addStop(trip, legIndex, bestDay, icon))}>
+          Add to {dayLabels[bestDay]}
+        </button>
+      </li>,
+    );
+  }
+
   const tips: ReactNode[] = [];
   for (let tipIndex = 0; tipIndex < plan.tips.length; tipIndex++) {
     tips.push(<li key={tipIndex}>{plan.tips[tipIndex]}</li>);
@@ -183,6 +198,13 @@ export default function LegSheet(props: Props) {
         <div className="leg-days">{days}</div>
         {map}
       </div>
+
+      {famousRows.length > 0 && (
+        <aside className="famous">
+          <h3>Also famous here:</h3>
+          <ul>{famousRows}</ul>
+        </aside>
+      )}
 
       {tips.length > 0 && (
         <aside className="tips">

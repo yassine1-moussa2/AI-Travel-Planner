@@ -1,7 +1,7 @@
 "use client";
 // One day of the trip, laid out as a timeline. Times are recalculated on every render.
 import type { ChangeEvent, ReactNode } from "react";
-import { isExcursion, isLongHop } from "@/lib/discovery";
+import { isExcursion, isLongHop, mostFamousIcon } from "@/lib/discovery";
 import { distanceKm, hopBetween } from "@/lib/geo";
 import { scheduleDay } from "@/lib/recalculate";
 import { addStop } from "@/lib/tripEdits";
@@ -31,6 +31,7 @@ export default function DayPlan(props: Props) {
   }
   const day = plan.days[dayIndex];
   const schedule = scheduleDay(day, props.index, trip.preferences.pace);
+  const topIcon = mostFamousIcon(plan);
 
   function handleAdd(event: ChangeEvent<HTMLSelectElement>) {
     const place = findPlace(props.freePlaces, event.target.value);
@@ -79,6 +80,8 @@ export default function DayPlan(props: Props) {
         stopCount={schedule.stops.length}
         dayLabels={props.dayLabels}
         freePlaces={props.freePlaces}
+        center={plan.center}
+        topIcon={topIcon}
         onTripChange={onTripChange}
       />,
     );

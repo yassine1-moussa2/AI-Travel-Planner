@@ -123,13 +123,13 @@ function mostFamousFirst(first: Place, second: Place): number {
 
 // The fame summary: what would be a must-see, and how many hidden finds there are to choose from.
 function printFame(places: Place[]): void {
-  const icons: Place[] = [];
+  const sights: Place[] = [];
   let hidden = 0;
   let local = 0;
   let withWikidata = 0;
   for (const place of places) {
-    if (place.tier === "icon") {
-      icons.push(place);
+    if (place.category === "sight" && place.fame >= 0) {
+      sights.push(place);
     }
     if (place.tier === "hidden") {
       hidden = hidden + 1;
@@ -141,16 +141,21 @@ function printFame(places: Place[]): void {
       withWikidata = withWikidata + 1;
     }
   }
-  icons.sort(mostFamousFirst);
+  sights.sort(mostFamousFirst);
 
   console.log("\nFame (Wikipedia editions, from Wikidata)");
   console.log("  " + places.length + " candidates, " + withWikidata + " with a Wikidata record");
-  console.log("  Top icons:");
-  if (icons.length === 0) {
+  // The ten most famous sights; the first ICON_COUNT (above the minimum fame) are the icons.
+  console.log("  Top 10 sights by fame (icon = must-see):");
+  if (sights.length === 0) {
     console.log("    none");
   }
-  for (let rank = 0; rank < icons.length && rank < 10; rank++) {
-    console.log("    " + String(icons[rank].fame).padStart(4) + "  " + icons[rank].name);
+  for (let rank = 0; rank < sights.length && rank < 10; rank++) {
+    let mark = "     ";
+    if (sights[rank].tier === "icon") {
+      mark = "icon ";
+    }
+    console.log("    " + mark + String(sights[rank].fame).padStart(4) + "  " + sights[rank].name);
   }
   console.log("  Hidden candidates: " + hidden);
   console.log("  Local finds: " + local);

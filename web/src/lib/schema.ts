@@ -1,6 +1,7 @@
 // Contracts. Anything coming from the browser or from the AI is checked against these
 // before the rest of the code is allowed to trust it.
 import { z } from "zod";
+import { HOBBY_IDS, hobbySchema } from "./hobbies";
 
 const interestSchema = z.enum(["history", "museums", "nature", "beaches", "nightlife", "shopping", "outlets"]);
 
@@ -18,6 +19,9 @@ export const legRequestSchema = z.object({
     mustSee: z.string().max(300),
     pace: z.enum(["slow", "balanced", "full"]),
     tripStyle: z.enum(["classic", "balanced", "adventurous"]).default("balanced"),
+    hobbies: z.array(hobbySchema).max(HOBBY_IDS.length).default([]),
+    aboutText: z.string().max(300).default(""),
+    stepFree: z.boolean().default(false),
   }),
 });
 

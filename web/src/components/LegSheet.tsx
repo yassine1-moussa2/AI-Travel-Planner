@@ -199,6 +199,12 @@ export default function LegSheet(props: Props) {
         {map}
       </div>
 
+      {trip.preferences.stepFree && (
+        <p className="estimate-hint step-free-note">
+          You asked for step-free routes. We favoured them, but our map data doesn&apos;t record steps or lifts, so check access before you go.
+        </p>
+      )}
+
       {famousRows.length > 0 && (
         <aside className="famous">
           <h3>Also famous here:</h3>

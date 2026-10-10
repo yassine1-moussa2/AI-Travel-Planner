@@ -4,9 +4,12 @@ import { selectCandidates } from "../candidates";
 import { EXCURSION_KM, applyExcursionRules } from "../discovery";
 import { ICON_COUNT, classifyPlaces } from "../fame";
 import { EUR_TO } from "../geo";
+import { hobbySearches, mergeHobbies } from "../hobbies";
+import type { Hobby } from "../hobbies";
 import { groundDays } from "../grounding";
 import { aiLegSchema } from "../schema";
 import type { Interest, LegPlan, LegRequest, Place, PlaceCategory, Point, StayStyle, TripStyle } from "../types";
+import { classifyAboutText } from "./aboutYou";
 import { PlannerError, logStep } from "./debug";
 import { fetchPlaces, findDestination, geocode } from "./geoapify";
 import type { FoundPlace } from "./geoapify";
@@ -48,7 +51,8 @@ export const BY_INTEREST: Record<Interest, CategoryGroup[]> = {
   shopping: [{ categories: "commercial.shopping_mall,commercial.marketplace", category: "shopping", limit: 6 }],
   // Outlet malls far out (found by name: Geoapify has no outlet category), plus city markets.
   outlets: [
-    { categories: "commercial.shopping_mall", category: "shopping", limit: 10, radius: OUTLET_RADIUS_M, nameContains: "outlet" },
+    // Geoapify's name search returns fewer matches at small limits (Lisbon: 1 at 10, 3 at 20).
+    { categories: "commercial.shopping_mall", category: "shopping", limit: 20, radius: OUTLET_RADIUS_M, nameContains: "outlet" },
     { categories: "commercial.marketplace", category: "shopping", limit: 6 },
   ],
 };
@@ -131,6 +135,18 @@ async function collectPlaces(center: Point, interests: Interest[], wanted: Recor
       if (group.nameContains !== undefined) {
         wanted[place.name.toLowerCase()] = true;
       }
+    }
+  }
+  return all;
+}
+
+// The searches for what the group loves (at most MAX_HOBBY_SEARCHES), one after another.
+async function collectHobbies(center: Point, hobbies: Hobby[]): Promise<FoundPlace[]> {
+  const all: FoundPlace[] = [];
+  for (const search of hobbySearches(hobbies)) {
+    const batch = await fetchGroup(center, search);
+    for (const place of batch) {
+      all.push(place);
     }
   }
   return all;
@@ -263,6 +279,9 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   const asked: Record<string, boolean> = {};
   const general = await collectPlaces(center, input.preferences.interests, asked);
   const discovery = await collectDiscovery(center);
+  // Chips first, then what their own words point to (one cached AI call; skipped on failure).
+  const hobbies = mergeHobbies(input.preferences.hobbies, await classifyAboutText(input.preferences.aboutText));
+  const hobbyFound = await collectHobbies(center, hobbies);
   const stayFound = await fetchPlaces(stayCenter, STAY_CATEGORIES[input.preferences.stayStyle], "stay", 12, STAY_RADIUS_M);
 
   // Must-see places go first so they survive de-duplication, then the famous ones,
@@ -274,6 +293,12 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   }
   for (const item of famous) {
     combined.push(item);
+  }
+  // Hobby finds before the general lists, so their fame is measured within the batch limit.
+  const fromHobbies: Record<string, boolean> = {};
+  for (const item of hobbyFound) {
+    combined.push(item);
+    fromHobbies[item.name.toLowerCase()] = true;
   }
   for (const item of general) {
     combined.push(item);
@@ -302,7 +327,13 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
       keepIds[place.id] = true;
     }
   }
-  const places = selectCandidates(classified, { keepIds });
+  const hobbyIds: Record<string, boolean> = {};
+  for (const place of classified) {
+    if (fromHobbies[place.name.toLowerCase()]) {
+      hobbyIds[place.id] = true;
+    }
+  }
+  const places = selectCandidates(classified, { keepIds, hobbyIds });
   const stays = numberPlaces(stayFound, "h", areas);
   logStep("candidates", places.length + " places, " + stays.length + " stays in " + center.name);
 
@@ -310,7 +341,7 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
     throw new PlannerError(422, "We found too few places in " + center.name + " to build a good plan. Try a bigger nearby city.", "only " + places.length + " named places");
   }
 
-  const prompt = buildLegPrompt(input, center, places, stays, areas);
+  const prompt = buildLegPrompt(input, center, places, stays, areas, hobbies);
   const ai = await generateJson(SYSTEM_PROMPT, prompt, aiLegSchema);
 
   const validIds: Record<string, boolean> = {};

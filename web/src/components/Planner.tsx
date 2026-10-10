@@ -227,6 +227,7 @@ export default function Planner() {
           Runs on your own computer. Places from{" "}
           <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, found with{" "}
           <a href="https://www.geoapify.com/">Geoapify</a>. Days drafted by Google Gemini, then checked against real places.
+          Fame scores from <a href="https://www.wikidata.org/">Wikidata</a> (CC0).
         </p>
       </footer>
     </main>

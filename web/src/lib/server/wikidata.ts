@@ -143,9 +143,10 @@ const FAMOUS_LIMIT = 25;
 // bridges, towers and churches; museums; parks; monuments; squares; tourist attractions;
 // landmarks; archaeological sites; gardens; neighbourhoods; streets; zoos; aquariums; sculptures.
 const VISITABLE = "wd:Q811979 wd:Q33506 wd:Q22698 wd:Q4989906 wd:Q174782 wd:Q570116 wd:Q2319498 wd:Q839954 wd:Q1107656 wd:Q123705 wd:Q83620 wd:Q43501 wd:Q2281788 wd:Q860861";
-// Famous, but not a sightseeing stop for most visitors: airports, and sports venues
-// (stadiums and arenas are offered to sport fans through their hobby instead).
-const NOT_SIGHTSEEING = "wd:Q1248784 wd:Q1076486";
+// Famous, but not a sightseeing stop for most visitors: airports; sports venues (offered to
+// sport fans through their hobby instead); and whole cities and towns, which Wikidata can file
+// as "tourist destinations" (Rome, Manhattan). Neighbourhoods like Alfama stay.
+const NOT_SIGHTSEEING = "wd:Q1248784 wd:Q1076486 wd:Q515 wd:Q3957";
 
 // The most-linked items near a point, kept only if they are something a visitor can see.
 // The inner query ranks by sitelinks first, so the type check only runs on 200 items.

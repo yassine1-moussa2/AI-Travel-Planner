@@ -186,6 +186,7 @@ This is a draft to be reviewed by a person; it isn't legal advice.
 
 - **What is stored:** email, name, the profile picture link if Google provides one, trips and their history,
   and counts and costs of plans. No passport data, no payment data.
+- **Never stored:** "Step-free routes preferred" is health-related, so it stays in the browser: strip it from trips before saving them to the database, and never log it.
 - **Why:** to sign you in, keep your trips, and prevent abuse.
 - **Where:** Postgres on Neon, EU region; the site runs in Vercel's EU region.
 - **Who else processes data:**

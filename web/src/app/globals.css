@@ -48,7 +48,8 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: inherit;
 }
@@ -284,7 +285,8 @@ legend {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border: 1.5px solid var(--line);
@@ -292,8 +294,37 @@ legend {
   background: var(--paper);
 }
 
-.field input::placeholder {
+.field textarea {
+  resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
   color: #a9879a;
+}
+
+/* About you: hobbies, their own words, and access needs. */
+.about-you {
+  margin-top: 2rem;
+}
+
+.about-you h3 {
+  margin: 0 0 0.9rem;
+  font-size: 1.15rem;
+}
+
+.about-you .chips {
+  margin-bottom: 1.25rem;
+}
+
+.about-text {
+  max-width: 40rem;
+}
+
+.field-count {
+  justify-self: end;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
 }
 
 /* ---------- The button that starts it all ---------- */
@@ -521,6 +552,52 @@ legend {
   color: var(--ink-soft);
 }
 
+/* Why a stop is here, in sentence case: famous, little known, local, or far but worth it. */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.2rem;
+}
+
+.badge {
+  padding: 0.05rem 0.6rem;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.badge-must-see {
+  background: var(--marigold);
+  color: var(--ink);
+}
+
+.badge-off-path {
+  background: var(--sea);
+  color: #fff;
+}
+
+.badge-worth-trip {
+  border-color: var(--bougainvillea);
+  color: var(--bougainvillea-deep);
+}
+
+.badge-local {
+  background: rgba(58, 29, 44, 0.07);
+  color: var(--ink-soft);
+}
+
+.stop-fame {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  margin: 0 0 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
 .stop-numbers {
   display: flex;
   flex-wrap: wrap;
@@ -675,6 +752,10 @@ legend {
 .transfer .field {
   grid-column: 2;
   grid-row: 1 / span 2;
+}
+
+.step-free-note {
+  margin: 1rem 0 0;
 }
 
 /* Famous places the plan left out, each with a one-tap way back in. */

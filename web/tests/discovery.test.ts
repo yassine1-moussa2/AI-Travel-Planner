@@ -87,7 +87,7 @@ test("candidates keep icons, hidden finds and meals in their slots, and stop at 
   }
   places.push(place("asked", "sight", "classic", -1, 38.7, -9.1));
 
-  const chosen = selectCandidates(places, { keepIds: { asked: true } });
+  const chosen = selectCandidates(places, { keepIds: { asked: true }, hobbyIds: {} });
   const counts: Record<string, number> = { icon: 0, hidden: 0, food: 0 };
   let keptAsked = false;
   for (const item of chosen) {
@@ -137,7 +137,7 @@ test("local finds get their own slots even after famous places fill the list", (
     places.push(place("l" + number, "shopping", "local", -1, 38.7, -9.1));
   }
   let locals = 0;
-  for (const item of selectCandidates(places, { keepIds: {} })) {
+  for (const item of selectCandidates(places, { keepIds: {}, hobbyIds: {} })) {
     if (item.tier === "local") {
       locals = locals + 1;
     }

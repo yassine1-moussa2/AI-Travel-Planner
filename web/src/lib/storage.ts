@@ -25,6 +25,9 @@ export function defaultTrip(): Trip {
       mustSee: "",
       pace: "balanced",
       tripStyle: "balanced",
+      hobbies: [],
+      aboutText: "",
+      stepFree: false,
     },
     legs: [emptyLeg()],
     transferOverrides: {},
@@ -64,9 +67,18 @@ export function loadTrip(): Trip | null {
     if (!Array.isArray(trip.legs) || trip.legs.length === 0) {
       return null;
     }
-    // Trips saved before the style choice existed get the default.
+    // Trips saved before these choices existed get the defaults.
     if (trip.preferences.tripStyle === undefined) {
       trip.preferences.tripStyle = "balanced";
+    }
+    if (trip.preferences.hobbies === undefined) {
+      trip.preferences.hobbies = [];
+    }
+    if (trip.preferences.aboutText === undefined) {
+      trip.preferences.aboutText = "";
+    }
+    if (trip.preferences.stepFree === undefined) {
+      trip.preferences.stepFree = false;
     }
     // A plan that was mid-loading when the page closed can't finish now.
     for (const leg of trip.legs) {

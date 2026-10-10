@@ -92,3 +92,39 @@ export function nearestDay(plan: LegPlan, place: Place, index: Record<string, Pl
   }
   return bestDay;
 }
+
+export type BadgeKind = "must-see" | "off-path" | "worth-trip" | "local";
+
+export interface Badge {
+  kind: BadgeKind;
+  label: string;
+}
+
+// The small labels on a stop, from its tier and its distance. A far icon can be both.
+export function stopBadges(place: Place, center: Point): Badge[] {
+  const badges: Badge[] = [];
+  if (place.tier === "icon") {
+    badges.push({ kind: "must-see", label: "Must-see" });
+  }
+  if (place.tier === "hidden") {
+    badges.push({ kind: "off-path", label: "Off the beaten path" });
+  }
+  if (place.tier === "local") {
+    badges.push({ kind: "local", label: "Local find" });
+  }
+  if (isExcursion(place, center)) {
+    badges.push({ kind: "worth-trip", label: "Worth the trip" });
+  }
+  return badges;
+}
+
+// The destination's most famous icon, used as the yardstick for hidden finds.
+export function mostFamousIcon(plan: LegPlan): Place | null {
+  let best: Place | null = null;
+  for (const place of plan.places) {
+    if (place.tier === "icon" && (best === null || place.fame > best.fame)) {
+      best = place;
+    }
+  }
+  return best;
+}

@@ -1,4 +1,5 @@
 // Shared vocabulary for the whole app: what a trip, a stop and a place look like.
+import type { Hobby } from "./hobbies";
 
 export type Currency = "EUR" | "USD" | "GBP" | "MAD";
 export type Pace = "slow" | "balanced" | "full";
@@ -64,6 +65,11 @@ export interface Preferences {
   mustSee: string;
   pace: Pace;
   tripStyle: TripStyle;
+  // About the group: hobby chips and their own words (max 300 characters).
+  hobbies: Hobby[];
+  aboutText: string;
+  // Health-related: kept in this browser only, never stored in an account (see docs/public-launch).
+  stepFree: boolean;
 }
 
 // Everything the server needs to plan one destination.

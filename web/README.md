@@ -30,6 +30,17 @@ Open http://localhost:3000.
   food wishes, must-see places, interests and pace.
 - **Edit everything.** Reorder, move to another day, swap, remove or add places; change any
   duration or price, the hotel, nightly rate or ticket prices. Changing a city re-plans only that city.
+- **Must-sees, measured.** Fame is the number of Wikipedia languages that write about a place
+  (from Wikidata), never guessed by the AI. The most famous sights within 20 km are offered even when
+  far from the hotel (the Brooklyn Bridge, Belém Tower); any the plan skips are listed under
+  "Also famous here" with a one-tap "Add to Day N".
+- **Off the beaten path.** Viewpoints, murals, markets, vintage and book shops, gardens and small
+  museums. Little-known places are labelled "Off the beaten path" or "Local find", and "Your style"
+  (classic, balanced, adventurous) sets how many each day gets.
+- **Worth the trip.** Outlet villages within 60 km, and excursions over 15 km out, planned as a half
+  day with the travel time each way.
+- **About you.** Hobby chips, the group's own words (read into the same fixed hobby list, so they can
+  only switch on known searches) and a step-free preference that stays in the browser.
 - **Day map.** Each destination shows one day on a map: numbered stops in visiting order, a dotted
   line joining them, and the hotel. Every edit updates it instantly; "Show on map" picks the day.
 - **Honest numbers.** Every price is an estimate and every one is editable. The page says so.
@@ -57,11 +68,11 @@ what makes instant, correct recalculation possible.
 | Command | Does |
 |---|---|
 | `npm run dev` | Local site at http://localhost:3000 |
-| `npm test` | 30 tests: scheduling, budget, edits, grounding, data profiling, map data, Gemini retries, destination lookup |
+| `npm test` | 65 tests: scheduling, budget, edits, grounding, profiling, map data, Gemini retries, destination lookup, fame, discovery, prompt, hobbies |
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | ESLint |
 | `npm run build` | Production build |
-| `npm run explore -- "Lisbon"` | Profile the places data for a city (see below) |
+| `npm run explore -- "Lisbon"` | Profile the places data for a city, its top icons and outlets (see below) |
 
 ## Exploring the data
 
@@ -106,10 +117,14 @@ src/
     ├── grounding.ts     drops places the AI invented
     ├── geo.ts           distances, walking vs transit, transfers
     ├── mapData.ts       what the day map draws (pure, from the same schedule as the list)
+    ├── fame.ts          icon, classic, hidden and local tiers from Wikipedia counts
+    ├── candidates.ts    which ~70 places the AI sees, with reserved slots
+    ├── discovery.ts     missing icons, nearest day, excursions, badges
+    ├── hobbies.ts       hobby chips and the searches each one adds
     ├── profile.ts       data-quality profiling
-    └── server/          Geoapify, Gemini, prompt, planning, cache, debug
+    └── server/          Geoapify, Wikidata, Gemini, prompt, planning, about-you, cache, debug
 scripts/explore-places.ts
-tests/  planner · mapData · gemini · destination
+tests/  planner · mapData · gemini · destination · fame · discovery · prompt · hobbies
 ```
 
 ## Known limits
@@ -124,4 +139,5 @@ tests/  planner · mapData · gemini · destination
 
 - Map tiles and style: [OpenFreeMap](https://openfreemap.org) (Liberty style), no key needed.
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+- Fame scores from [Wikidata](https://www.wikidata.org/) (CC0).
 - Map rendering: [MapLibre GL JS](https://maplibre.org).

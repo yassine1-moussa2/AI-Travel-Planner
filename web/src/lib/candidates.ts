@@ -5,11 +5,13 @@ import type { Place } from "./types";
 
 export const MAX_CANDIDATES = 70;
 // Local finds have no fame score, so without their own slots they would always sort last.
-export const RESERVED = { icons: 8, hidden: 15, food: 20, cafes: 7, local: 10 };
+export const RESERVED = { icons: 8, hidden: 15, hobbies: 20, food: 20, cafes: 7, local: 10 };
 
 export interface CandidateRules {
   // Places the traveller asked for by name: always kept.
   keepIds: Record<string, boolean>;
+  // Places found for the group's hobbies.
+  hobbyIds: Record<string, boolean>;
 }
 
 function mostFamousFirst(first: Place, second: Place): number {
@@ -42,6 +44,8 @@ export function selectCandidates(places: Place[], rules: CandidateRules): Place[
   reserve(places, MAX_CANDIDATES, (place) => rules.keepIds[place.id] === true);
   reserve(byFame, RESERVED.icons, (place) => place.tier === "icon");
   reserve(places, RESERVED.hidden, (place) => place.tier === "hidden");
+  // Most famous first, so Estádio da Luz beats a neighbourhood pitch for a football fan.
+  reserve(byFame, RESERVED.hobbies, (place) => rules.hobbyIds[place.id] === true);
   reserve(places, RESERVED.food, (place) => place.category === "food");
   reserve(places, RESERVED.cafes, (place) => place.category === "cafe");
   reserve(places, RESERVED.local, (place) => place.tier === "local");

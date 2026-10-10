@@ -1,11 +1,12 @@
 "use client";
 // One visit in a day: its times, what it costs, and every way to change it.
 import type { ChangeEvent, ReactNode } from "react";
+import { stopBadges } from "@/lib/discovery";
 import type { ScheduledStop } from "@/lib/recalculate";
 import { formatClock } from "@/lib/recalculate";
 import { moveStop, moveStopToDay, removeStop, swapStop, updateStopNumber } from "@/lib/tripEdits";
-import { CATEGORY_WORDS } from "@/lib/words";
-import type { Place, Trip } from "@/lib/types";
+import { CATEGORY_WORDS, describeFameComparison } from "@/lib/words";
+import type { Place, Point, Trip } from "@/lib/types";
 import { findPlace, placeOptionGroups } from "./placeOptions";
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   stopCount: number;
   dayLabels: string[];
   freePlaces: Place[];
+  center: Point;
+  topIcon: Place | null;
   onTripChange: (trip: Trip) => void;
 }
 
@@ -64,6 +67,29 @@ export default function StopRow(props: Props) {
     note = <p className="stop-note">{stop.note}</p>;
   }
 
+  // Badges say why a stop is here: famous, little known, local, or far but worth it.
+  const badges: ReactNode[] = [];
+  let fameLine: ReactNode = null;
+  if (scheduled.place !== null) {
+    for (const badge of stopBadges(scheduled.place, props.center)) {
+      badges.push(<span key={badge.kind} className={"badge badge-" + badge.kind}>{badge.label}</span>);
+    }
+    // For a hidden find, show how little it is written about, next to the city's top icon.
+    const comparison = describeFameComparison(scheduled.place, props.topIcon);
+    if (scheduled.place.tier === "hidden" && comparison !== "") {
+      let readMore: ReactNode = null;
+      if (scheduled.place.wikiUrl !== "") {
+        readMore = <a href={scheduled.place.wikiUrl} target="_blank" rel="noreferrer">Read about it</a>;
+      }
+      fameLine = (
+        <p className="stop-fame">
+          {comparison}
+          {readMore}
+        </p>
+      );
+    }
+  }
+
   return (
     <li className="stop">
       <div className="stop-time">
@@ -74,7 +100,9 @@ export default function StopRow(props: Props) {
       <div className="stop-body">
         <h4 className="stop-name">{name}</h4>
         <span className="stop-kind">{kind}</span>
+        {badges.length > 0 && <div className="badges">{badges}</div>}
         {note}
+        {fameLine}
         <div className="stop-numbers">
           <label>
             <input type="number" min={10} max={600} step={5} value={stop.durationMinutes} onChange={(event) => handleNumber("durationMinutes", event)} aria-label={"Minutes at " + name} />

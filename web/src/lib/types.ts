@@ -4,6 +4,8 @@ export type Currency = "EUR" | "USD" | "GBP" | "MAD";
 export type Pace = "slow" | "balanced" | "full";
 export type StayStyle = "budget" | "comfort" | "treat";
 export type Interest = "history" | "museums" | "nature" | "beaches" | "nightlife" | "shopping";
+// How far off the beaten path to go: mostly famous places, a mix, or mostly hidden finds.
+export type TripStyle = "classic" | "balanced" | "adventurous";
 
 export type PlaceCategory =
   | "sight"
@@ -61,6 +63,7 @@ export interface Preferences {
   food: string;
   mustSee: string;
   pace: Pace;
+  tripStyle: TripStyle;
 }
 
 // Everything the server needs to plan one destination.

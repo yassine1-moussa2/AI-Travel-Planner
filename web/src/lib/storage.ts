@@ -24,6 +24,7 @@ export function defaultTrip(): Trip {
       food: "",
       mustSee: "",
       pace: "balanced",
+      tripStyle: "balanced",
     },
     legs: [emptyLeg()],
     transferOverrides: {},
@@ -62,6 +63,10 @@ export function loadTrip(): Trip | null {
     const trip = JSON.parse(saved) as Trip;
     if (!Array.isArray(trip.legs) || trip.legs.length === 0) {
       return null;
+    }
+    // Trips saved before the style choice existed get the default.
+    if (trip.preferences.tripStyle === undefined) {
+      trip.preferences.tripStyle = "balanced";
     }
     // A plan that was mid-loading when the page closed can't finish now.
     for (const leg of trip.legs) {

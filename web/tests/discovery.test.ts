@@ -6,7 +6,9 @@ import assert from "node:assert/strict";
 import { MAX_CANDIDATES, RESERVED, selectCandidates } from "../src/lib/candidates";
 import { isLongHop, missingIcons, nearestDay } from "../src/lib/discovery";
 import { placesById } from "../src/lib/recalculate";
+import { ADVENTUROUS_ICON_COUNT, iconCountFor } from "../src/lib/server/planLeg";
 import { readFamousPlaces } from "../src/lib/server/wikidata";
+import { ICON_COUNT } from "../src/lib/fame";
 import type { LegPlan, Place, PlaceCategory, PlaceTier } from "../src/lib/types";
 
 function place(id: string, category: PlaceCategory, tier: PlaceTier, fame: number, lat: number, lon: number): Place {
@@ -123,4 +125,27 @@ test("the Wikidata answer becomes one place per item, skipping unnamed and repea
   assert.equal(places.length, 2);
   assert.deepEqual(places[0], { wikidataId: "Q125006", name: "Brooklyn Bridge", lon: -73.9969, lat: 40.7061 });
   assert.equal(places[1].name, "Statue of Liberty");
+});
+
+test("local finds get their own slots even after famous places fill the list", () => {
+  const places: Place[] = [];
+  for (let number = 0; number < 80; number++) {
+    places.push(place("c" + number, "sight", "classic", 50, 38.7, -9.1));
+  }
+  for (let number = 0; number < 12; number++) {
+    places.push(place("l" + number, "shopping", "local", -1, 38.7, -9.1));
+  }
+  let locals = 0;
+  for (const item of selectCandidates(places, { keepIds: {} })) {
+    if (item.tier === "local") {
+      locals = locals + 1;
+    }
+  }
+  assert.equal(locals, RESERVED.local);
+});
+
+test("an adventurous trip gets only the top 3 icons", () => {
+  assert.equal(iconCountFor("adventurous"), ADVENTUROUS_ICON_COUNT);
+  assert.equal(iconCountFor("balanced"), ICON_COUNT);
+  assert.equal(iconCountFor("classic"), ICON_COUNT);
 });

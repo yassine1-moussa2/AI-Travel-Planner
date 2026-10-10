@@ -32,3 +32,17 @@ test("the prompt lists candidates with tiers and asks for an icon every day from
   const short = buildLegPrompt(request(2), lisbon, [bridgeView, tasca], [], {});
   assert.ok(!short.includes("at least one icon every day"));
 });
+
+test("each style gives its own rule about hidden and local finds", () => {
+  const rules: Record<string, string> = {};
+  for (const style of ["classic", "balanced", "adventurous"] as const) {
+    const input = request(3);
+    input.preferences = { ...input.preferences, tripStyle: style };
+    rules[style] = buildLegPrompt(input, lisbon, [bridgeView, tasca], [], {});
+  }
+  assert.ok(rules.classic.includes("At most 1 hidden or local find per day"));
+  assert.ok(rules.balanced.includes("at least 1 hidden or local find every day"));
+  assert.ok(rules.adventurous.includes("at least 2 hidden or local finds every day"));
+  // Notes for hidden finds may only use what the traveller told us.
+  assert.ok(rules.balanced.includes("Never state facts you were not given"));
+});

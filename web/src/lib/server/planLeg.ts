@@ -5,7 +5,7 @@ import { ICON_COUNT, classifyPlaces } from "../fame";
 import { EUR_TO } from "../geo";
 import { groundDays } from "../grounding";
 import { aiLegSchema } from "../schema";
-import type { Interest, LegPlan, LegRequest, Place, PlaceCategory, Point, StayStyle } from "../types";
+import type { Interest, LegPlan, LegRequest, Place, PlaceCategory, Point, StayStyle, TripStyle } from "../types";
 import { PlannerError, logStep } from "./debug";
 import { fetchPlaces, findDestination, geocode } from "./geoapify";
 import type { FoundPlace } from "./geoapify";
@@ -41,6 +41,26 @@ export const BY_INTEREST: Record<Interest, CategoryGroup> = {
   shopping: { categories: "commercial.shopping_mall,commercial.marketplace", category: "shopping", limit: 6 },
 };
 
+// Off the beaten path, within the city radius. Every category was checked against Geoapify's
+// list and against real results in Lisbon and New York (npm run explore).
+// Street art is "mural" (Geoapify has no graffiti category); in Lisbon it also finds azulejo panels.
+export const DISCOVERY: CategoryGroup[] = [
+  { categories: "tourism.attraction.viewpoint,tourism.attraction.artwork.mural", category: "sight", limit: 15 },
+  { categories: "commercial.marketplace,commercial.second_hand,commercial.books", category: "shopping", limit: 15 },
+  { categories: "leisure.park.garden", category: "nature", limit: 8 },
+  { categories: "entertainment.museum,entertainment.culture.arts_centre,entertainment.culture.gallery", category: "museum", limit: 15 },
+];
+
+// An adventurous traveller still sees the very top sights, but only a few.
+export const ADVENTUROUS_ICON_COUNT = 3;
+
+export function iconCountFor(style: TripStyle): number {
+  if (style === "adventurous") {
+    return ADVENTUROUS_ICON_COUNT;
+  }
+  return ICON_COUNT;
+}
+
 export const STAY_CATEGORIES: Record<StayStyle, string> = {
   budget: "accommodation.hostel,accommodation.guest_house",
   comfort: "accommodation.hotel,accommodation.guest_house",
@@ -71,6 +91,18 @@ function groupsFor(interests: Interest[]): CategoryGroup[] {
 async function collectPlaces(center: Point, interests: Interest[]): Promise<FoundPlace[]> {
   const all: FoundPlace[] = [];
   for (const group of groupsFor(interests)) {
+    const batch = await fetchPlaces(center, group.categories, group.category, group.limit, CITY_RADIUS_M);
+    for (const place of batch) {
+      all.push(place);
+    }
+  }
+  return all;
+}
+
+// The discovery searches, one after another like every Geoapify call.
+export async function collectDiscovery(center: Point): Promise<FoundPlace[]> {
+  const all: FoundPlace[] = [];
+  for (const group of DISCOVERY) {
     const batch = await fetchPlaces(center, group.categories, group.category, group.limit, CITY_RADIUS_M);
     for (const place of batch) {
       all.push(place);
@@ -191,6 +223,7 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   const mustSee = await collectMustSee(input.preferences.mustSee, center);
   const famous = await collectFamous(center);
   const general = await collectPlaces(center, input.preferences.interests);
+  const discovery = await collectDiscovery(center);
   const stayFound = await fetchPlaces(stayCenter, STAY_CATEGORIES[input.preferences.stayStyle], "stay", 12, STAY_RADIUS_M);
 
   // Must-see places go first so they survive de-duplication, then the famous ones,
@@ -207,10 +240,22 @@ export async function planLeg(input: LegRequest): Promise<LegPlan> {
   for (const item of general) {
     combined.push(item);
   }
+  // Remember which names came from a discovery search: without a Wikipedia page they are local finds.
+  const discovered: Record<string, boolean> = {};
+  for (const item of discovery) {
+    combined.push(item);
+    discovered[item.name.toLowerCase()] = true;
+  }
 
   const areas: Record<string, string> = {};
   const measured = await measureFame(numberPlaces(combined, "p", areas));
-  const classified = classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds: {} });
+  const discoveryIds: Record<string, boolean> = {};
+  for (const place of measured) {
+    if (discovered[place.name.toLowerCase()]) {
+      discoveryIds[place.id] = true;
+    }
+  }
+  const classified = classifyPlaces(measured, { iconCount: iconCountFor(input.preferences.tripStyle), discoveryIds });
 
   // Keep the list near 70 places; what the traveller named is always kept.
   const keepIds: Record<string, boolean> = {};

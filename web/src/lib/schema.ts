@@ -17,6 +17,7 @@ export const legRequestSchema = z.object({
     food: z.string().max(200),
     mustSee: z.string().max(300),
     pace: z.enum(["slow", "balanced", "full"]),
+    tripStyle: z.enum(["classic", "balanced", "adventurous"]).default("balanced"),
   }),
 });
 

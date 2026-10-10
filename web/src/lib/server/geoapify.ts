@@ -178,6 +178,9 @@ export async function findDestination(text: string): Promise<DestinationLookup> 
 export async function fetchRawPlaces(center: Point, categories: string, limit: number, radiusMeters: number): Promise<RawPlaceProperties[]> {
   const url = new URL(PLACES_URL);
   url.searchParams.set("categories", categories);
+  // Nameless places are useless to a traveller and were dropped anyway; asking for named ones
+  // only keeps the limit for real results (87% of New York viewpoints have no name).
+  url.searchParams.set("conditions", "named");
   url.searchParams.set("filter", "circle:" + center.lon + "," + center.lat + "," + radiusMeters);
   url.searchParams.set("bias", "proximity:" + center.lon + "," + center.lat);
   url.searchParams.set("limit", String(limit));
@@ -219,7 +222,7 @@ function toFoundPlace(raw: RawPlaceProperties, category: PlaceCategory): FoundPl
 // One category group, cached. A failure here is logged and returns nothing,
 // so one bad category never ruins the whole city.
 export async function fetchPlaces(center: Point, categories: string, category: PlaceCategory, limit: number, radiusMeters: number): Promise<FoundPlace[]> {
-  const cacheKey = "places|" + center.lat.toFixed(3) + "," + center.lon.toFixed(3) + "|" + categories + "|" + limit + "|" + radiusMeters;
+  const cacheKey = "places|named|" + center.lat.toFixed(3) + "," + center.lon.toFixed(3) + "|" + categories + "|" + limit + "|" + radiusMeters;
   const cached = readCache<FoundPlace[]>(cacheKey);
   if (cached !== null) {
     return cached;

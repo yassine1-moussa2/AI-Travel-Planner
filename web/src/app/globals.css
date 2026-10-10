@@ -249,6 +249,22 @@ legend {
   cursor: pointer;
 }
 
+/* A choice with a short explanation under its label. */
+.choice-with-hint {
+  align-items: flex-start;
+}
+
+.choice-with-hint input {
+  margin-top: 0.3rem;
+}
+
+.choice-hint {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
 .choice input {
   width: 1.1rem;
   height: 1.1rem;

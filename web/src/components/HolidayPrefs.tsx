@@ -1,8 +1,8 @@
 "use client";
 // What makes it a holiday for this traveller: interests, where to sleep, what to eat, pace.
 import type { ChangeEvent, ReactNode } from "react";
-import { INTEREST_WORDS, PACE_WORDS, STYLE_WORDS } from "@/lib/words";
-import type { Interest, Pace, Preferences, StayStyle } from "@/lib/types";
+import { INTEREST_WORDS, PACE_WORDS, STYLE_WORDS, TRIP_STYLE_WORDS } from "@/lib/words";
+import type { Interest, Pace, Preferences, StayStyle, TripStyle } from "@/lib/types";
 
 interface Props {
   preferences: Preferences;
@@ -12,6 +12,7 @@ interface Props {
 const ALL_INTERESTS: Interest[] = ["history", "museums", "nature", "beaches", "nightlife", "shopping"];
 const ALL_STYLES: StayStyle[] = ["budget", "comfort", "treat"];
 const ALL_PACES: Pace[] = ["slow", "balanced", "full"];
+const ALL_TRIP_STYLES: TripStyle[] = ["classic", "balanced", "adventurous"];
 
 export default function HolidayPrefs({ preferences, onChange }: Props) {
   function change(edit: (copy: Preferences) => void) {
@@ -69,6 +70,20 @@ export default function HolidayPrefs({ preferences, onChange }: Props) {
     );
   }
 
+  const tripStyleChoices: ReactNode[] = [];
+  for (const tripStyle of ALL_TRIP_STYLES) {
+    const words = TRIP_STYLE_WORDS[tripStyle];
+    tripStyleChoices.push(
+      <label key={tripStyle} className="choice choice-with-hint">
+        <input type="radio" name="trip-style" checked={preferences.tripStyle === tripStyle} onChange={() => change((copy) => { copy.tripStyle = tripStyle; })} />
+        <span>
+          {words.label}
+          <span className="choice-hint">{words.hint}</span>
+        </span>
+      </label>,
+    );
+  }
+
   return (
     <section className="prefs" aria-labelledby="prefs-title">
       <h2 id="prefs-title">What makes it a holiday for you?</h2>
@@ -96,10 +111,16 @@ export default function HolidayPrefs({ preferences, onChange }: Props) {
           </label>
         </fieldset>
 
-        <fieldset>
-          <legend>Your rhythm</legend>
-          <div className="choices">{paceChoices}</div>
-        </fieldset>
+        <div>
+          <fieldset>
+            <legend>Your rhythm</legend>
+            <div className="choices">{paceChoices}</div>
+          </fieldset>
+          <fieldset>
+            <legend>Your style</legend>
+            <div className="choices">{tripStyleChoices}</div>
+          </fieldset>
+        </div>
       </div>
     </section>
   );

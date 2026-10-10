@@ -1,7 +1,7 @@
 // Builds the instructions sent to the AI for one destination.
 import { distanceKm } from "../geo";
 import { dayStartMinutes, formatClock } from "../recalculate";
-import type { LegRequest, Place, Point } from "../types";
+import type { LegRequest, Place, Point, TripStyle } from "../types";
 
 export const SYSTEM_PROMPT =
   "You are a friend who lives in the city and plans trips for visitors. " +
@@ -47,6 +47,13 @@ function describePlace(place: Place, extra: string): string {
   }
   return line;
 }
+
+// How far off the beaten path to go, as one rule for the AI.
+export const STYLE_RULES: Record<TripStyle, string> = {
+  classic: "- Style: classic. Build the days mostly from icons and classics. At most 1 hidden or local find per day.",
+  balanced: "- Style: balanced. Include at least 1 hidden or local find every day, next to the icons and classics.",
+  adventurous: "- Style: adventurous. Include at least 2 hidden or local finds every day. Only the few places marked icon are must-sees; otherwise prefer hidden and local finds over classics.",
+};
 
 // With 3 days or more there is room for an icon every day.
 function iconMinimum(nights: number): string {
@@ -97,10 +104,12 @@ export function buildLegPrompt(input: LegRequest, center: Point, places: Place[]
   lines.push("- Places marked icon are must-sees. Include as many icons as the days allow" + iconMinimum(input.nights) + ".");
   lines.push("- Build each day around one area. A far icon anchors its day together with stops near it; never zigzag across the city. Use the areas and distances.");
   lines.push("- Order each day so consecutive stops are close together.");
+  lines.push(STYLE_RULES[prefs.tripStyle]);
   lines.push("- Never use the same place twice across the whole stay.");
   lines.push("- costPerPerson: realistic entry ticket or meal price for ONE person; 0 for free places like parks, viewpoints and squares.");
   lines.push("- durationMinutes: realistic time spent there.");
   lines.push("- note: one specific sentence a local friend would say (what to order, where to sit, when to go). No clichés such as 'hidden gem', 'vibrant' or 'must-see'.");
+  lines.push("- For a hidden or local find, the note says why it suits these travellers, using only what they told us above. Never state facts you were not given, such as opening hours, history or dates.");
   lines.push("- title: a short day title (max 6 words) naming the areas visited.");
   lines.push("- stayPlaceId: the stay that best matches their style and area. nightlyPricePerRoom: typical price of one double room per night there.");
   lines.push("- localTransportPerPersonPerDay: typical metro/bus/tram spend per person per day in this city.");

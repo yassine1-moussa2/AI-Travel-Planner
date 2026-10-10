@@ -1,6 +1,6 @@
 // How numbers and categories are said to the traveller, in plain words.
 import type { Hop, TransferEstimate } from "./geo";
-import type { Currency, Interest, Pace, PlaceCategory, StayStyle } from "./types";
+import type { Currency, Interest, Pace, PlaceCategory, StayStyle, TripStyle } from "./types";
 
 export function formatMoney(amount: number, currency: Currency): string {
   const formatter = new Intl.NumberFormat("en-GB", { style: "currency", currency, maximumFractionDigits: 0 });
@@ -44,6 +44,12 @@ export const STYLE_WORDS: Record<StayStyle, string> = {
   budget: "Simple and cheap",
   comfort: "Comfortable",
   treat: "A real treat",
+};
+
+export const TRIP_STYLE_WORDS: Record<TripStyle, { label: string; hint: string }> = {
+  classic: { label: "Classic", hint: "the famous sights first" },
+  balanced: { label: "Balanced", hint: "famous sights and a hidden find each day" },
+  adventurous: { label: "Adventurous", hint: "mostly places other planners miss" },
 };
 
 export const PACE_WORDS: Record<Pace, string> = {

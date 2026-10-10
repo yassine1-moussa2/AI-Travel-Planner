@@ -7,7 +7,7 @@ import { profileGroup } from "../src/lib/profile";
 import type { GroupProfile } from "../src/lib/profile";
 import { fetchPlaces, fetchRawPlaces, findDestination } from "../src/lib/server/geoapify";
 import type { FoundPlace } from "../src/lib/server/geoapify";
-import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, STAY_CATEGORIES, STAY_RADIUS_M, collectFamous, measureFame, numberPlaces } from "../src/lib/server/planLeg";
+import { ALWAYS, BY_INTEREST, CITY_RADIUS_M, DISCOVERY, STAY_CATEGORIES, STAY_RADIUS_M, collectDiscovery, collectFamous, measureFame, numberPlaces } from "../src/lib/server/planLeg";
 import type { Place, Point } from "../src/lib/types";
 
 interface GroupToCheck {
@@ -27,6 +27,9 @@ function allGroups(): GroupToCheck[] {
   for (const interest of Object.keys(BY_INTEREST) as (keyof typeof BY_INTEREST)[]) {
     const group = BY_INTEREST[interest];
     groups.push({ label: "interest: " + interest, categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, isFood: false });
+  }
+  for (const group of DISCOVERY) {
+    groups.push({ label: "discovery: " + group.categories.split(",")[0], categories: group.categories, limit: group.limit, radius: CITY_RADIUS_M, isFood: false });
   }
   for (const style of Object.keys(STAY_CATEGORIES) as (keyof typeof STAY_CATEGORIES)[]) {
     groups.push({ label: "stay: " + style, categories: STAY_CATEGORIES[style], limit: 12, radius: STAY_RADIUS_M, isFood: false });
@@ -92,8 +95,20 @@ async function classifiedCandidates(center: Point): Promise<Place[]> {
       found.push(item);
     }
   }
+  // Discovery finds go last, as in the planner; their names mark local finds.
+  const discovered: Record<string, boolean> = {};
+  for (const item of await collectDiscovery(center)) {
+    found.push(item);
+    discovered[item.name.toLowerCase()] = true;
+  }
   const measured = await measureFame(numberPlaces(found, "p", {}));
-  return classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds: {} });
+  const discoveryIds: Record<string, boolean> = {};
+  for (const place of measured) {
+    if (discovered[place.name.toLowerCase()]) {
+      discoveryIds[place.id] = true;
+    }
+  }
+  return classifyPlaces(measured, { iconCount: ICON_COUNT, discoveryIds });
 }
 
 function mostFamousFirst(first: Place, second: Place): number {
@@ -104,6 +119,7 @@ function mostFamousFirst(first: Place, second: Place): number {
 function printFame(places: Place[]): void {
   const icons: Place[] = [];
   let hidden = 0;
+  let local = 0;
   let withWikidata = 0;
   for (const place of places) {
     if (place.tier === "icon") {
@@ -111,6 +127,9 @@ function printFame(places: Place[]): void {
     }
     if (place.tier === "hidden") {
       hidden = hidden + 1;
+    }
+    if (place.tier === "local") {
+      local = local + 1;
     }
     if (place.wikidataId !== "") {
       withWikidata = withWikidata + 1;
@@ -128,6 +147,7 @@ function printFame(places: Place[]): void {
     console.log("    " + String(icons[rank].fame).padStart(4) + "  " + icons[rank].name);
   }
   console.log("  Hidden candidates: " + hidden);
+  console.log("  Local finds: " + local);
 }
 
 async function main(): Promise<void> {

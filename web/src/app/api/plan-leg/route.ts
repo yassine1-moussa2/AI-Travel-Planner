@@ -4,8 +4,18 @@
 import { legRequestSchema } from "@/lib/schema";
 import { errorResponse, startTimer } from "@/lib/server/debug";
 import { planLeg } from "@/lib/server/planLeg";
+import { allowPlan } from "@/lib/server/rateLimit";
+
+// A city plan takes 15 to 40 seconds, longer when the AI is busy and we retry. 300 s is the Vercel Hobby ceiling.
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  // Every plan costs an AI call, so the limits are checked before anything else.
+  const limit = allowPlan(request);
+  if (!limit.ok) {
+    return Response.json({ error: limit.message }, { status: 429 });
+  }
+
   let body: unknown = null;
   try {
     body = await request.json();

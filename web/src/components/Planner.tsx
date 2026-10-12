@@ -31,7 +31,7 @@ async function requestLegPlan(body: LegRequest): Promise<PlanReply> {
     }
     return data;
   } catch {
-    return { error: "We couldn't reach the planner. Check that npm run dev is still running." };
+    return { error: "We couldn't reach the planner. Check your connection and try again." };
   }
 }
 

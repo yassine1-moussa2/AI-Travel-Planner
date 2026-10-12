@@ -49,7 +49,7 @@ export function errorResponse(step: string, error: unknown): Response {
   if (error instanceof PlannerError) {
     return Response.json({ error: error.userMessage }, { status: error.status });
   }
-  return Response.json({ error: "Something went wrong on our side. Check the terminal for details." }, { status: 500 });
+  return Response.json({ error: "Something went wrong on our side. Try again in a minute." }, { status: 500 });
 }
 
 export function requireEnv(name: string): string {

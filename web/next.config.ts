@@ -26,8 +26,8 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
-  // The repo root also holds the CLI's package-lock.json. Without this line Next.js
-  // guesses the repo root as the project root and may resolve packages from the CLI.
+  // The repo also holds the archived CLI's package-lock.json (in prototype/). Pinning the root
+  // here stops Next.js from guessing another folder as the project root.
   turbopack: {
     root: path.resolve(__dirname),
   },

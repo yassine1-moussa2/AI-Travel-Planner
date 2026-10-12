@@ -9,10 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.0.0",
-    "ai": "^4.0.0",
     "dotenv": "^16.4.5",
-    "zod": "^3.23.8"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

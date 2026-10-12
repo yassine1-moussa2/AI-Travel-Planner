@@ -109,6 +109,49 @@ export async function geocode(text: string, near: Point | null): Promise<Point |
   return point;
 }
 
+// Answers that are an area, not a place you can visit. When the geocoder can't match a landmark
+// it falls back to the city it was given ("Belém Tower, Lisbon" came back as Lisbon itself),
+// which would put the landmark in the middle of town.
+const AREA_TYPES: Record<string, boolean> = {
+  city: true,
+  county: true,
+  state: true,
+  country: true,
+  postcode: true,
+  district: true,
+  suburb: true,
+};
+
+export function isAreaResult(result: GeocodeResult): boolean {
+  return AREA_TYPES[result.result_type || ""] === true;
+}
+
+// Find one named place (a landmark the traveller typed) near the destination, or nothing.
+// The name is searched alone: the circle around the destination already keeps it local.
+export async function geocodeLandmark(name: string, near: Point): Promise<Point | null> {
+  const cacheKey = "landmark|" + name.toLowerCase() + "|" + near.lat.toFixed(2) + "," + near.lon.toFixed(2);
+  const cached = readCache<Point | "none">(cacheKey);
+  if (cached === "none") {
+    return null;
+  }
+  if (cached !== null) {
+    return cached;
+  }
+
+  const done = startTimer("landmark");
+  const settings = { limit: "1", filter: "circle:" + near.lon + "," + near.lat + ",30000" };
+  const results = await searchByName(name, settings);
+  if (results.length === 0 || isAreaResult(results[0])) {
+    writeCache(cacheKey, "none");
+    done(name + " -> not found as a place");
+    return null;
+  }
+  const point = { name, lat: results[0].lat, lon: results[0].lon };
+  writeCache(cacheKey, point);
+  done(name + " -> " + point.lat.toFixed(4) + "," + point.lon.toFixed(4));
+  return point;
+}
+
 export type DestinationKind = "place" | "country" | "region" | "none";
 
 export interface DestinationLookup {

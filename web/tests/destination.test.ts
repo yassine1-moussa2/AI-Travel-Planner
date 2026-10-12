@@ -3,7 +3,7 @@
 // The result shapes copy real Geoapify answers. fetch is faked, so no network is used.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chooseDestination, findDestination } from "../src/lib/server/geoapify";
+import { chooseDestination, findDestination, isAreaResult } from "../src/lib/server/geoapify";
 import type { GeocodeResult } from "../src/lib/server/geoapify";
 
 process.env.GEOAPIFY_API_KEY = "test-key";
@@ -75,4 +75,11 @@ test("a plain city needs one search and is remembered", async () => {
   assert.equal(first.point?.name, "Marrakesh, Morocco");
   assert.deepEqual(second, first);
   assert.equal(counter.calls, 1);
+});
+
+test("a landmark search that falls back to the whole city is not a landmark", () => {
+  assert.equal(isAreaResult({ lat: 38.7, lon: -9.1, result_type: "city" }), true);
+  assert.equal(isAreaResult({ lat: 38.7, lon: -9.1, result_type: "suburb" }), true);
+  assert.equal(isAreaResult({ lat: 38.69, lon: -9.21, result_type: "amenity" }), false);
+  assert.equal(isAreaResult({ lat: 38.69, lon: -9.21 }), false);
 });

@@ -11,7 +11,7 @@ import { aiLegSchema } from "../schema";
 import type { Interest, LegPlan, LegRequest, Place, PlaceCategory, Point, StayStyle, TripStyle } from "../types";
 import { classifyAboutText } from "./aboutYou";
 import { PlannerError, logStep } from "./debug";
-import { fetchPlaces, findDestination, geocode } from "./geoapify";
+import { fetchPlaces, findDestination, geocode, geocodeLandmark } from "./geoapify";
 import type { FoundPlace } from "./geoapify";
 import { generateJson } from "./gemini";
 import { SYSTEM_PROMPT, buildLegPrompt } from "./prompt";
@@ -173,7 +173,7 @@ async function collectMustSee(mustSee: string, center: Point): Promise<FoundPlac
     if (name === "" || found.length >= MAX_MUST_SEE) {
       continue;
     }
-    const point = await geocode(name + ", " + center.name, center);
+    const point = await geocodeLandmark(name, center);
     if (point !== null) {
       found.push({ name, category: "sight", lat: point.lat, lon: point.lon, address: "", area: "", cuisine: "", wikidataId: "" });
     }

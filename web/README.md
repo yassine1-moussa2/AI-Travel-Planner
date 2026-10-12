@@ -85,7 +85,8 @@ limits or categories in `src/lib/server/planLeg.ts`.
 ## When something breaks
 
 1. **Open http://localhost:3000/api/health.** It makes one tiny real call to each service and tells
-   you which one fails and why.
+   you which one fails and why. In production it only answers with the header
+   `x-health-token: <HEALTH_CHECK_TOKEN>`, because every check costs real quota.
 2. **Turn on step logs:** set `PLANNER_DEBUG=1` in `.env.local`, restart `npm run dev`, plan again.
    The terminal shows each step with its timing, and how many invented stops the grounding dropped.
 3. **Errors are always printed** in the terminal as `[planner] FAILED at <step>: <real cause>`,
@@ -96,6 +97,7 @@ limits or categories in `src/lib/server/planLeg.ts`.
 | "an API key is missing on the server" | `.env.local` missing or not reloaded | Create it, then restart `npm run dev` |
 | "The AI model isn't available" | Google retired the model name | Set `GEMINI_MODEL=gemini-flash-latest` |
 | "free quota is used up" | Gemini free tier limit | Wait a minute; check quota in AI Studio |
+| "That's a lot of plans in a minute" / "most cities allowed today" | The built-in plan limits | Raise `PLAN_LIMIT_*` in `.env.local`, restart |
 | "map service is busy" | Geoapify rate limit | Wait a few seconds; plans one city at a time already |
 | "is a whole country" / "is a whole region" | A country or region was typed as a destination | Type a town or city; add one destination per city |
 | A destination lands in the wrong country | The name also exists elsewhere ("Lake Como" in New Jersey) | Add the country: "Como, Italy" |
@@ -108,7 +110,7 @@ limits or categories in `src/lib/server/planLeg.ts`.
 src/
 ├── app/
 │   ├── page.tsx, layout.tsx, globals.css
-│   └── api/  plan-leg · geocode · health
+│   └── api/  plan-leg · geocode · health (all rate-limited or locked in production)
 ├── components/          the page, one file per piece of the interface
 └── lib/
     ├── types.ts         shared vocabulary
@@ -122,9 +124,9 @@ src/
     ├── discovery.ts     missing icons, nearest day, excursions, badges
     ├── hobbies.ts       hobby chips and the searches each one adds
     ├── profile.ts       data-quality profiling
-    └── server/          Geoapify, Wikidata, Gemini, prompt, planning, about-you, cache, debug
+    └── server/          Geoapify, Wikidata, Gemini, prompt, planning, about-you, cache, rate limits, debug
 scripts/explore-places.ts
-tests/  planner · mapData · gemini · destination · fame · discovery · prompt · hobbies
+tests/  planner · mapData · gemini · destination · fame · discovery · prompt · hobbies · rateLimit
 ```
 
 ## Known limits
@@ -134,6 +136,8 @@ tests/  planner · mapData · gemini · destination · fame · discovery · prom
 - Transfers are rough distance-based estimates, not live train or flight fares.
 - The place cache lives in server memory and resets when `npm run dev` restarts.
 - Trips are saved in your browser only; there are no accounts yet.
+- Plan limits are counted in server memory, per server instance. They stop casual abuse, not a
+  determined attacker; Phase 2 moves them into the database.
 
 ## Credits
 

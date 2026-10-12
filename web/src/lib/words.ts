@@ -41,10 +41,11 @@ export const INTEREST_WORDS: Record<Interest, string> = {
   outlets: "Outlets and deals",
 };
 
+// What the traveller sees. The keys stay as they are; the AI gets its own wording in prompt.ts.
 export const STYLE_WORDS: Record<StayStyle, string> = {
-  budget: "Simple and cheap",
-  comfort: "Comfortable",
-  treat: "A real treat",
+  budget: "Budget",
+  comfort: "Mid-range",
+  treat: "Luxury",
 };
 
 export const TRIP_STYLE_WORDS: Record<TripStyle, { label: string; hint: string }> = {

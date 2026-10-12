@@ -8,6 +8,7 @@ import { clearTrip, defaultTrip, legKey, loadTrip, saveTrip } from "@/lib/storag
 import type { LegPlan, LegRequest, Point, Trip } from "@/lib/types";
 import BudgetStrip from "./BudgetStrip";
 import HolidayPrefs from "./HolidayPrefs";
+import HowItWorks from "./HowItWorks";
 import LegSheet from "./LegSheet";
 import TransferRow from "./TransferRow";
 import TripSentence from "./TripSentence";
@@ -203,9 +204,12 @@ export default function Planner() {
         <div className="hero-inner">
           <p className="wordmark">Terrasse</p>
           <h1>Where to next?</h1>
+          <p className="hero-lede">Plan a trip from real places, see what it costs, and change anything.</p>
           <TripSentence trip={trip} onChange={setTrip} />
         </div>
       </header>
+
+      <HowItWorks />
 
       <HolidayPrefs preferences={trip.preferences} onChange={setPreferences} />
 
@@ -224,7 +228,7 @@ export default function Planner() {
 
       <footer className="footer">
         <p>
-          Runs on your own computer. Places from{" "}
+          Your trip is kept in this browser only. Places from{" "}
           <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, found with{" "}
           <a href="https://www.geoapify.com/">Geoapify</a>. Days drafted by Google Gemini, then checked against real places.
           Fame scores from <a href="https://www.wikidata.org/">Wikidata</a> (CC0).

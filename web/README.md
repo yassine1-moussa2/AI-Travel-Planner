@@ -68,7 +68,7 @@ what makes instant, correct recalculation possible.
 | Command | Does |
 |---|---|
 | `npm run dev` | Local site at http://localhost:3000 |
-| `npm test` | 65 tests: scheduling, budget, edits, grounding, profiling, map data, Gemini retries, destination lookup, fame, discovery, prompt, hobbies |
+| `npm test` | 70 tests: scheduling, budget, edits, grounding, profiling, map data, Gemini retries, destination and landmark lookup, fame, discovery, prompt, hobbies, rate limits |
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | ESLint |
 | `npm run build` | Production build |
